@@ -59,6 +59,24 @@ class TestGraphBuilder(unittest.TestCase):
 
         self.assertEqual(visible, {"USA"})
 
+    def test_build_trade_graph_tracks_total_imports_and_exports(self) -> None:
+        """Graph construction should preserve raw trade totals on country nodes."""
+        gdp_data = {
+            "USA": {"name": "United States", "gdp": 100.0},
+            "CAN": {"name": "Canada", "gdp": 50.0},
+        }
+        trade_data = [
+            {"exporter_code": "USA", "importer_code": "CAN", "trade_value": 10.0},
+            {"exporter_code": "CAN", "importer_code": "USA", "trade_value": 4.0},
+        ]
+
+        countries = build_trade_graph(gdp_data, trade_data, {})
+
+        self.assertEqual(countries["USA"].total_exports, 10.0)
+        self.assertEqual(countries["USA"].total_imports, 4.0)
+        self.assertEqual(countries["CAN"].total_exports, 4.0)
+        self.assertEqual(countries["CAN"].total_imports, 10.0)
+
     def test_resilience_profiles_reward_diversified_importers(self) -> None:
         """More diversified importers should receive higher substitution and inventory values."""
         usa = CountryNode("USA", "United States", 100.0)
@@ -83,6 +101,14 @@ class TestGraphBuilder(unittest.TestCase):
         self.assertGreater(
             profiles["inventory_buffers"]["DEU"],
             profiles["inventory_buffers"]["CAN"],
+        )
+        self.assertGreater(
+            profiles["recovery_rates"]["DEU"],
+            profiles["recovery_rates"]["CAN"],
+        )
+        self.assertGreater(
+            profiles["delay_shares"]["DEU"],
+            profiles["delay_shares"]["CAN"],
         )
 
     def test_clone_trade_graph_returns_detached_copy(self) -> None:

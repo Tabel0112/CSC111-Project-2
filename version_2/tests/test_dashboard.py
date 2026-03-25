@@ -5,7 +5,12 @@ from __future__ import annotations
 import unittest
 
 from country_node import CountryNode
-from dashboard import _build_slider_marks, shock_rows_to_initial_inputs, sync_shock_rows
+from dashboard import (
+    _build_slider_marks,
+    _run_simulation_from_controls,
+    shock_rows_to_initial_inputs,
+    sync_shock_rows,
+)
 
 
 class TestDashboardHelpers(unittest.TestCase):
@@ -44,6 +49,28 @@ class TestDashboardHelpers(unittest.TestCase):
 
         self.assertEqual(marks[0], "0")
         self.assertEqual(marks[17], "17")
+
+    def test_run_simulation_from_controls_falls_back_to_selected_codes(self) -> None:
+        """Selected countries should still run if the editable shock table is temporarily empty."""
+        usa = CountryNode("USA", "United States", 100.0)
+        can = CountryNode("CAN", "Canada", 50.0)
+        usa.add_trading_partner(can, 0.5)
+        countries = {"USA": usa, "CAN": can}
+
+        simulation_data, status = _run_simulation_from_controls(
+            countries,
+            ["USA"],
+            [],
+            threshold=0.01,
+            steps=3,
+            top_n=2,
+            top_k=2,
+            visible_by="gdp",
+            _hide_edges=False,
+        )
+
+        self.assertEqual(len(simulation_data["step_history"]), 3)
+        self.assertIn("Selected 1 countries.", status)
 
 
 if __name__ == "__main__":

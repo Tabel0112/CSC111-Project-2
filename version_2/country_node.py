@@ -13,6 +13,8 @@ class CountryNode:
     total_gdp: float
     lat: float
     lon: float
+    total_imports: float
+    total_exports: float
     current_health: float
     trading_partners: dict[CountryNode, float]
 
@@ -23,6 +25,8 @@ class CountryNode:
         total_gdp: float,
         lat: float = 0.0,
         lon: float = 0.0,
+        total_imports: float = 0.0,
+        total_exports: float = 0.0,
     ) -> None:
         """Initialize this country node."""
         self.code = code
@@ -30,6 +34,8 @@ class CountryNode:
         self.total_gdp = total_gdp
         self.lat = lat
         self.lon = lon
+        self.total_imports = total_imports
+        self.total_exports = total_exports
         self.current_health = 1.0
         self.trading_partners = {}
 
@@ -73,5 +79,6 @@ class CountryNode:
         """Return a helpful string representation."""
         return (
             f"CountryNode(code={self.code!r}, name={self.name!r}, "
-            f"gdp={self.total_gdp:.2f}, health={self.current_health:.3f})"
+            f"gdp={self.total_gdp:.2f}, imports={self.total_imports:.2f}, "
+            f"exports={self.total_exports:.2f}, health={self.current_health:.3f})"
         )

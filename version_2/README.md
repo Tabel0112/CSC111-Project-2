@@ -10,9 +10,10 @@ Countries are graph nodes. Directed edges point from exporter to importer. Each 
 
 - current exporter disruption
 - import-shortage spillovers
-- supplier substitution
+- nonlinear supplier substitution
 - inventory buffering
-- gradual recovery
+- delayed shortage carryover
+- pressure-sensitive recovery
 
 The simulation saves every step and replays the result with Plotly.
 
@@ -30,6 +31,7 @@ The simulation saves every step and replays the result with Plotly.
 - `utils.py`: Stores small helper functions.
 - `tests/`: Basic unit tests.
 - `data/`: Expected location for GDP, trade, and coordinate CSV files.
+- `CODE_WALKTHROUGH.md`: Detailed explanation of how the full code path works.
 
 ## Setup
 
@@ -131,10 +133,16 @@ Run the basic tests with:
 python -m unittest discover -s tests
 ```
 
+## Understanding The Code
+
+For a detailed explanation of how the data is loaded, how resilience profiles are computed, how each simulation step works, and how the dashboard renders saved states, read:
+
+- `CODE_WALKTHROUGH.md`
+
 ## Current Limitations
 
 - The simulation is still a simplified macro trade model, not a calibrated forecasting system.
-- Trade dependence is approximated with importer trade-share weights, plus inferred resilience proxies.
+- Trade dependence is approximated with importer trade-share weights, plus inferred resilience proxies rather than direct inventory data.
 - Sector-level production is not modeled separately yet.
 - The default visualization uses a 2D geographic projection rather than a more advanced globe.
 - Edge filtering is applied after graph construction for readability.

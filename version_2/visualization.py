@@ -54,7 +54,7 @@ def _build_country_trace(
     impact_data = step_snapshot["shock_data"]
     health_data = step_snapshot["health_data"]
     inventory_data = step_snapshot["inventory_data"]
-    pressure_data = step_snapshot["pressure_data"]
+    shortage_data = step_snapshot.get("shortage_data", step_snapshot["pressure_data"])
 
     for code in sorted(visible_codes):
         country = countries[code]
@@ -66,7 +66,7 @@ def _build_country_trace(
                 float(health_data.get(code, 1.0)),
                 float(impact_data.get(code, 0.0)),
                 float(inventory_data.get(code, 1.0)),
-                float(pressure_data.get(code, 0.0)),
+                float(shortage_data.get(code, 0.0)),
             )
         )
 
@@ -107,7 +107,7 @@ def _build_active_marker_trace(
     impact_data = step_snapshot["shock_data"]
     health_data = step_snapshot["health_data"]
     inventory_data = step_snapshot["inventory_data"]
-    pressure_data = step_snapshot["pressure_data"]
+    shortage_data = step_snapshot.get("shortage_data", step_snapshot["pressure_data"])
 
     for code in sorted(impact_data):
         if code not in visible_codes or code not in countries:
@@ -125,7 +125,7 @@ def _build_active_marker_trace(
                 float(health_data.get(code, 1.0)),
                 impact,
                 float(inventory_data.get(code, 1.0)),
-                float(pressure_data.get(code, 0.0)),
+                float(shortage_data.get(code, 0.0)),
             )
         )
 
@@ -168,7 +168,7 @@ def create_step_figure(
     bounded_index = max(0, min(step_index, len(step_history) - 1))
     step_snapshot = step_history[bounded_index]
     max_gdp = max(countries[code].total_gdp for code in visible_codes)
-    active_codes = set(step_snapshot["shock_data"]) | set(step_snapshot["pressure_data"])
+    active_codes = set(step_snapshot["shock_data"]) | set(step_snapshot.get("shortage_data", step_snapshot["pressure_data"]))
 
     figure_data = []
     if show_edges:
@@ -214,7 +214,7 @@ def create_simulation_figure(
 
     frames = []
     for step_snapshot in step_history:
-        active_codes = set(step_snapshot["shock_data"]) | set(step_snapshot["pressure_data"])
+        active_codes = set(step_snapshot["shock_data"]) | set(step_snapshot.get("shortage_data", step_snapshot["pressure_data"]))
         frame_data = []
         if show_edges:
             frame_data.append(_build_edge_trace(countries, visible_codes, active_codes))

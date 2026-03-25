@@ -1,9 +1,9 @@
 # Data Folder
 
-Place the real project CSV files here:
+This folder holds the real CSV files used by `version_2`.
 
 - `world_bank_gdp.csv`
 - `comtrade_trade.csv`
 - `country_coordinates.csv` (optional but recommended)
 
-This repository currently does not include the GDP or Comtrade files, so the program falls back to the built-in demo graph unless you add them.
+The current `version_2` code is real-data only. It does not fall back to a demo graph.

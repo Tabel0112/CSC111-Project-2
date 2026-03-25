@@ -154,27 +154,28 @@ def _run_simulation_from_controls(
     countries = clone_trade_graph(template_countries)
     reset_all_countries(countries)
 
-    initial_country_names, initial_shocks = shock_rows_to_initial_inputs(rows)
-    if not initial_country_names:
-        initial_country_names = "; ".join(
-            countries[code].name for code in selected_codes if code in countries
-        )
-        initial_shocks = ",".join([str(DEFAULT_INITIAL_SHOCK)] * len(selected_codes))
+    initial_shock_map = {
+        str(row["code"]): float(row["shock"])
+        for row in rows
+        if row.get("code") in countries
+    }
+    if not initial_shock_map:
+        initial_shock_map = {
+            code: DEFAULT_INITIAL_SHOCK
+            for code in selected_codes
+            if code in countries
+        }
 
     resilience_profiles = build_country_resilience_profiles(countries)
     step_history = run_time_step_simulation(
         countries,
-        {
-            code: float(shock)
-            for code, shock in zip(
-                [row["code"] for row in rows if row.get("code") in countries],
-                [row["shock"] for row in rows if row.get("code") in countries],
-            )
-        },
+        initial_shock_map,
         threshold=threshold,
         max_steps=steps,
         inventory_buffer=resilience_profiles["inventory_buffers"],
         substitution_rate=resilience_profiles["substitution_rates"],
+        delay_share=resilience_profiles["delay_shares"],
+        recovery_rate=resilience_profiles["recovery_rates"],
     )
     visible_codes = choose_visible_country_codes(
         countries,
@@ -183,7 +184,7 @@ def _run_simulation_from_controls(
         visible_by,
     )
     status = (
-        f"Selected {len(selected_codes)} countries. "
+        f"Selected {len(initial_shock_map)} countries. "
         f"Generated {len(step_history)} steps. "
         f"Last step affects {len(step_history[-1]['shock_data']) if step_history else 0} countries."
     )
@@ -224,6 +225,8 @@ def _render_dashboard_figure(
                 "health_data": {code: 1.0 for code in base_countries},
                 "inventory_data": {code: 0.0 for code in base_countries},
                 "pressure_data": {},
+                "shortage_data": {},
+                "deferred_shortage_data": {},
             }
         ], set(list(base_countries)[: min(20, len(base_countries))]), show_edges=False, replay_enabled=False)
 

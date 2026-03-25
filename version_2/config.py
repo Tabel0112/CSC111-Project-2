@@ -51,8 +51,12 @@ SUBSTITUTION_RATE = 0.45
 TRADE_PRESSURE_SCALE = 1.3
 HEALTH_DAMAGE_SCALE = 0.75
 DISRUPTION_PERSISTENCE = 0.3
-HEALTH_GAP_PASS_THROUGH = 0.35
+HEALTH_GAP_PASS_THROUGH = 0.0
 RECOVERY_RATE = 0.08
+SHORTAGE_DELAY_SHARE = 0.22
+SHORTAGE_DAMAGE_SCALE = 0.2
+SUBSTITUTION_PRESSURE_EXPONENT = 0.75
+RECOVERY_PRESSURE_SENSITIVITY = 0.8
 
 SHOW_EDGES = True
 REPLAY_ENABLED = True
@@ -65,16 +69,28 @@ AGGREGATE_NAME_KEYWORDS = {
     "asia",
     "caribbean",
     "central europe",
+    "classification",
+    "demographic dividend",
+    "developed countries",
+    "developing",
     "east asia",
     "euro area",
     "europe",
+    "fragile",
     "high income",
+    "heavily indebted",
+    "ibrd",
+    "ida",
     "income",
     "latin america",
+    "least developed",
+    "late-demographic",
     "middle east",
     "north america",
     "oecd",
     "pacific",
+    "post-demographic",
+    "pre-demographic",
     "small states",
     "south asia",
     "sub-saharan",

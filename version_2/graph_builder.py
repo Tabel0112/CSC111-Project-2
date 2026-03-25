@@ -71,6 +71,8 @@ def add_trade_edges(
         importer = countries[importer_code]
         trade_value = float(row["trade_value"])
         weight = compute_edge_weight(trade_value, import_totals[importer_code])
+        exporter.total_exports += trade_value
+        importer.total_imports += trade_value
 
         if weight > 0:
             exporter.add_trading_partner(importer, weight)
@@ -96,6 +98,8 @@ def clone_trade_graph(countries: dict[str, CountryNode]) -> dict[str, CountryNod
             total_gdp=country.total_gdp,
             lat=country.lat,
             lon=country.lon,
+            total_imports=country.total_imports,
+            total_exports=country.total_exports,
         )
         for code, country in countries.items()
     }
@@ -199,30 +203,102 @@ def _compute_import_share_lists(
     return share_lists
 
 
+def _clamp_unit(value: float) -> float:
+    """Return <value> clamped to the closed unit interval."""
+    return max(0.0, min(1.0, value))
+
+
 def build_country_resilience_profiles(
     countries: dict[str, CountryNode],
 ) -> dict[str, dict[str, float]]:
-    """Return country-specific substitution and inventory values from trade concentration."""
+    """Return country-specific resilience values derived from current trade structure.
+
+    The current dataset does not include direct inventory or substitution measurements,
+    so this function builds proxies from:
+    - supplier diversification
+    - largest-supplier concentration
+    - import dependence relative to GDP
+    - number of active suppliers
+    """
     substitution_rates = {}
     inventory_buffers = {}
+    recovery_rates = {}
+    delay_shares = {}
+    diversification_scores = {}
+    import_dependency_scores = {}
+    concentration_scores = {}
     share_lists = _compute_import_share_lists(countries)
 
     for code, shares in share_lists.items():
         if not shares:
-            diversification = 0.4
+            diversification = 0.3
+            largest_supplier_share = 1.0
+            breadth = 0.0
         else:
             total_share = sum(shares)
             normalized_shares = [share / total_share for share in shares]
             concentration = sum(share * share for share in normalized_shares)
             effective_partner_count = 1.0 / concentration if concentration > 0 else len(shares)
             diversification = min(1.0, max(0.0, (effective_partner_count - 1.0) / 9.0))
+            largest_supplier_share = max(normalized_shares)
+            breadth = _clamp_unit((len(normalized_shares) - 1.0) / 14.0)
 
-        substitution_rates[code] = 0.15 + 0.5 * diversification
-        inventory_buffers[code] = 0.03 + 0.09 * diversification
+        country = countries[code]
+        import_dependency = _clamp_unit((country.total_imports / max(country.total_gdp, 1.0)) / 0.6)
+        diversification_scores[code] = diversification
+        import_dependency_scores[code] = import_dependency
+        concentration_scores[code] = largest_supplier_share
+
+        substitution_rates[code] = min(
+            0.65,
+            max(
+                0.06,
+                0.08
+                + 0.28 * diversification
+                + 0.14 * breadth
+                - 0.18 * largest_supplier_share
+                - 0.16 * import_dependency,
+            ),
+        )
+        inventory_buffers[code] = min(
+            0.14,
+            max(
+                0.015,
+                0.02
+                + 0.045 * diversification
+                + 0.025 * breadth
+                + 0.02 * (1.0 - import_dependency),
+            ),
+        )
+        recovery_rates[code] = min(
+            0.12,
+            max(
+                0.025,
+                0.03
+                + 0.035 * diversification
+                + 0.025 * (1.0 - import_dependency)
+                + 0.015 * (1.0 - largest_supplier_share),
+            ),
+        )
+        delay_shares[code] = min(
+            0.45,
+            max(
+                0.08,
+                0.10
+                + 0.20 * diversification
+                + 0.10 * breadth
+                + 0.05 * (1.0 - largest_supplier_share),
+            ),
+        )
 
     return {
         "substitution_rates": substitution_rates,
         "inventory_buffers": inventory_buffers,
+        "recovery_rates": recovery_rates,
+        "delay_shares": delay_shares,
+        "diversification_scores": diversification_scores,
+        "import_dependency_scores": import_dependency_scores,
+        "concentration_scores": concentration_scores,
     }
 
 

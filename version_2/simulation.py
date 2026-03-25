@@ -15,7 +15,11 @@ from config import (
     INVENTORY_REBUILD_RATE,
     MIN_HEALTH_CUTOFF,
     RECOVERY_RATE,
+    RECOVERY_PRESSURE_SENSITIVITY,
+    SHORTAGE_DAMAGE_SCALE,
+    SHORTAGE_DELAY_SHARE,
     SUBSTITUTION_RATE,
+    SUBSTITUTION_PRESSURE_EXPONENT,
     TRADE_PRESSURE_SCALE,
 )
 from country_node import CountryNode
@@ -59,46 +63,76 @@ def _apply_substitution_and_inventory(
     import_pressures: dict[str, float],
     inventories: dict[str, float],
     substitution_rate: float | Mapping[str, float],
-) -> tuple[dict[str, float], dict[str, float]]:
-    """Return remaining shortages and updated inventory levels."""
+    delay_share: float | Mapping[str, float],
+    substitution_pressure_exponent: float,
+) -> tuple[dict[str, float], dict[str, float], dict[str, float]]:
+    """Return immediate shortages, updated inventory levels, and delayed shortages.
+
+    Substitution becomes less effective for larger shortages, and some unresolved
+    shortage is deferred to the next step rather than hitting immediately.
+    """
     remaining_inventories = dict(inventories)
-    shortages = {}
+    immediate_shortages = {}
+    deferred_shortages = {}
 
     for code in countries:
         pressure = clamp_shock(import_pressures.get(code, 0.0))
         if pressure <= 0.0:
             continue
 
-        country_substitution_rate = _profile_value(substitution_rate, code)
-        shortage_after_substitution = max(0.0, pressure * (1.0 - country_substitution_rate))
+        base_substitution_rate = clamp_shock(_profile_value(substitution_rate, code))
+        effective_substitution_rate = base_substitution_rate * (
+            1.0 - pressure ** max(0.1, substitution_pressure_exponent)
+        )
+        shortage_after_substitution = max(0.0, pressure * (1.0 - effective_substitution_rate))
         inventory_used = min(remaining_inventories[code], shortage_after_substitution)
         remaining_inventories[code] -= inventory_used
 
         remaining_shortage = clamp_shock(shortage_after_substitution - inventory_used)
         if remaining_shortage > 0.0:
-            shortages[code] = remaining_shortage
+            country_delay_share = clamp_shock(_profile_value(delay_share, code))
+            deferred_amount = clamp_shock(remaining_shortage * country_delay_share)
+            immediate_amount = clamp_shock(remaining_shortage - deferred_amount)
+            if immediate_amount > 0.0:
+                immediate_shortages[code] = immediate_amount
+            if deferred_amount > 0.0:
+                deferred_shortages[code] = deferred_amount
 
-    return shortages, remaining_inventories
+    return immediate_shortages, remaining_inventories, deferred_shortages
 
 
 def _apply_health_updates(
     countries: dict[str, CountryNode],
     disruptions: dict[str, float],
-    recovery_rate: float,
+    import_pressures: dict[str, float],
+    shortages: dict[str, float],
+    recovery_rate: float | Mapping[str, float],
     health_damage_scale: float,
+    shortage_damage_scale: float,
+    recovery_pressure_sensitivity: float,
 ) -> None:
-    """Apply current disruptions to health and then allow partial recovery."""
+    """Apply current disruptions to health and then allow pressure-dependent recovery."""
     for code, country in countries.items():
         disruption = clamp_shock(disruptions.get(code, 0.0))
-        if disruption > 0.0:
-            country.apply_shock(disruption * health_damage_scale)
-        country.recover(recovery_rate)
+        shortage = clamp_shock(shortages.get(code, 0.0))
+        pressure = clamp_shock(import_pressures.get(code, 0.0))
+        total_damage = clamp_shock(
+            disruption * health_damage_scale + shortage * shortage_damage_scale
+        )
+        if total_damage > 0.0:
+            country.apply_shock(total_damage)
+
+        base_recovery_rate = clamp_shock(_profile_value(recovery_rate, code))
+        recovery_headwind = clamp_shock(disruption + pressure * recovery_pressure_sensitivity)
+        effective_recovery_rate = base_recovery_rate * (1.0 - recovery_headwind)
+        country.recover(effective_recovery_rate)
 
 
 def _rebuild_inventories(
     countries: dict[str, CountryNode],
     inventories: dict[str, float],
     disruptions: dict[str, float],
+    import_pressures: dict[str, float],
     inventory_rebuild_rate: float,
     max_inventory: float | Mapping[str, float],
 ) -> dict[str, float]:
@@ -106,7 +140,8 @@ def _rebuild_inventories(
     rebuilt = {}
     for code, country in countries.items():
         disruption = clamp_shock(disruptions.get(code, 0.0))
-        rebuild_amount = inventory_rebuild_rate * country.current_health * (1.0 - disruption)
+        pressure = clamp_shock(import_pressures.get(code, 0.0))
+        rebuild_amount = inventory_rebuild_rate * country.current_health * (1.0 - max(disruption, pressure))
         rebuilt[code] = min(_profile_value(max_inventory, code), inventories[code] + rebuild_amount)
     return rebuilt
 
@@ -124,14 +159,11 @@ def _compute_next_disruptions(
 
     for code, country in countries.items():
         lingering_disruption = clamp_shock(current_disruptions.get(code, 0.0) * persistence)
-        persistent_output_gap = clamp_shock((1.0 - country.current_health) * health_gap_pass_through)
-        next_impact = clamp_shock(
-            max(
-                shortages.get(code, 0.0),
-                lingering_disruption,
-                persistent_output_gap,
-            )
-        )
+        persistent_output_gap = 0.0
+        if health_gap_pass_through > 0.0 and (shortages.get(code, 0.0) > 0.0 or lingering_disruption > 0.0):
+            persistent_output_gap = clamp_shock((1.0 - country.current_health) * health_gap_pass_through)
+
+        next_impact = clamp_shock(max(shortages.get(code, 0.0), lingering_disruption, persistent_output_gap))
         if next_impact >= threshold and country.current_health > MIN_HEALTH_CUTOFF:
             next_disruptions[code] = next_impact
 
@@ -141,6 +173,18 @@ def _compute_next_disruptions(
 def _snapshot(values: dict[str, float]) -> dict[str, float]:
     """Return a sorted shallow snapshot of scalar values."""
     return {code: values[code] for code in sorted(values)}
+
+
+def _combine_pressures(
+    first_pressures: dict[str, float],
+    second_pressures: dict[str, float],
+) -> dict[str, float]:
+    """Return the summed pressure map after clamping each country's total."""
+    combined = {
+        code: clamp_shock(first_pressures.get(code, 0.0) + second_pressures.get(code, 0.0))
+        for code in set(first_pressures) | set(second_pressures)
+    }
+    return {code: value for code, value in combined.items() if value > 0.0}
 
 
 def _profile_value(profile: float | Mapping[str, float], code: str) -> float:
@@ -157,34 +201,52 @@ def run_time_step_simulation(
     max_steps: int = DEFAULT_TIME_STEPS,
     inventory_buffer: float | Mapping[str, float] = DEFAULT_INVENTORY_BUFFER,
     substitution_rate: float | Mapping[str, float] = SUBSTITUTION_RATE,
+    delay_share: float | Mapping[str, float] = SHORTAGE_DELAY_SHARE,
     trade_pressure_scale: float = TRADE_PRESSURE_SCALE,
-    recovery_rate: float = RECOVERY_RATE,
+    recovery_rate: float | Mapping[str, float] = RECOVERY_RATE,
     inventory_rebuild_rate: float = INVENTORY_REBUILD_RATE,
     health_damage_scale: float = HEALTH_DAMAGE_SCALE,
+    shortage_damage_scale: float = SHORTAGE_DAMAGE_SCALE,
     persistence: float = DISRUPTION_PERSISTENCE,
     health_gap_pass_through: float = HEALTH_GAP_PASS_THROUGH,
+    substitution_pressure_exponent: float = SUBSTITUTION_PRESSURE_EXPONENT,
+    recovery_pressure_sensitivity: float = RECOVERY_PRESSURE_SENSITIVITY,
 ) -> list[dict[str, Any]]:
     """Run the time-step simulation and return replay-friendly snapshots."""
     step_history = []
     current_disruptions = _sanitize_disruptions(countries, initial_shocks)
+    if max_steps <= 0 or not current_disruptions:
+        return step_history
+
     inventories = {code: _profile_value(inventory_buffer, code) for code in countries}
+    deferred_shortages = {code: 0.0 for code in countries}
 
     for step in range(max_steps):
-        if not current_disruptions:
-            break
-
-        _apply_health_updates(countries, current_disruptions, recovery_rate, health_damage_scale)
-        import_pressures = _compute_trade_pressures(countries, current_disruptions, trade_pressure_scale)
-        shortages, depleted_inventories = _apply_substitution_and_inventory(
+        trade_pressures = _compute_trade_pressures(countries, current_disruptions, trade_pressure_scale)
+        import_pressures = _combine_pressures(trade_pressures, deferred_shortages)
+        shortages, depleted_inventories, deferred_shortages = _apply_substitution_and_inventory(
             countries,
             import_pressures,
             inventories,
             substitution_rate,
+            delay_share,
+            substitution_pressure_exponent,
+        )
+        _apply_health_updates(
+            countries,
+            current_disruptions,
+            import_pressures,
+            shortages,
+            recovery_rate,
+            health_damage_scale,
+            shortage_damage_scale,
+            recovery_pressure_sensitivity,
         )
         inventories = _rebuild_inventories(
             countries,
             depleted_inventories,
             current_disruptions,
+            import_pressures,
             inventory_rebuild_rate,
             inventory_buffer,
         )
@@ -195,7 +257,11 @@ def run_time_step_simulation(
                 "shock_data": dict(sorted(current_disruptions.items())),
                 "health_data": country_dict_to_snapshot(countries),
                 "inventory_data": _snapshot(inventories),
-                "pressure_data": _snapshot({code: shortages[code] for code in shortages}),
+                "pressure_data": _snapshot(import_pressures),
+                "shortage_data": _snapshot(shortages),
+                "deferred_shortage_data": _snapshot(
+                    {code: value for code, value in deferred_shortages.items() if value > 0.0}
+                ),
             }
         )
 

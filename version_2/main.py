@@ -150,6 +150,8 @@ def main() -> None:
         max_steps=args.steps,
         inventory_buffer=resilience_profiles["inventory_buffers"],
         substitution_rate=resilience_profiles["substitution_rates"],
+        delay_share=resilience_profiles["delay_shares"],
+        recovery_rate=resilience_profiles["recovery_rates"],
     )
     visible_codes = choose_visible_country_codes(
         countries,
