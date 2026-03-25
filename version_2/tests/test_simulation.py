@@ -51,7 +51,6 @@ class TestSimulation(unittest.TestCase):
             inventory_buffer=0.0,
             substitution_rate=0.0,
             trade_pressure_scale=1.0,
-            recovery_rate=0.0,
             inventory_rebuild_rate=0.0,
             health_damage_scale=1.0,
             shortage_damage_scale=0.0,
@@ -59,7 +58,6 @@ class TestSimulation(unittest.TestCase):
             health_gap_pass_through=0.0,
             delay_share=0.0,
             substitution_pressure_exponent=1.0,
-            recovery_pressure_sensitivity=0.0,
         )
 
         self.assertAlmostEqual(history[1]["shock_data"]["CAN"], 0.2)
@@ -79,7 +77,6 @@ class TestSimulation(unittest.TestCase):
             inventory_buffer=0.25,
             substitution_rate=0.0,
             trade_pressure_scale=1.0,
-            recovery_rate=0.0,
             inventory_rebuild_rate=0.0,
             health_damage_scale=1.0,
             shortage_damage_scale=0.0,
@@ -87,7 +84,6 @@ class TestSimulation(unittest.TestCase):
             health_gap_pass_through=0.0,
             delay_share=0.0,
             substitution_pressure_exponent=1.0,
-            recovery_pressure_sensitivity=0.0,
         )
 
         self.assertEqual(len(history), 3)
@@ -95,8 +91,8 @@ class TestSimulation(unittest.TestCase):
         self.assertEqual(history[1]["shock_data"], {})
         self.assertEqual(history[2]["shock_data"], {})
 
-    def test_recovery_restores_health_over_time(self) -> None:
-        """Health should recover over time when persistence is disabled."""
+    def test_health_stays_flat_when_no_new_damage_occurs(self) -> None:
+        """Without healing, health should stay at the post-shock level once pressure stops."""
         usa = CountryNode("USA", "United States", 100.0)
         countries = {"USA": usa}
 
@@ -108,7 +104,6 @@ class TestSimulation(unittest.TestCase):
             inventory_buffer=0.0,
             substitution_rate=0.0,
             trade_pressure_scale=0.0,
-            recovery_rate=0.2,
             inventory_rebuild_rate=0.0,
             health_damage_scale=1.0,
             shortage_damage_scale=0.0,
@@ -116,11 +111,10 @@ class TestSimulation(unittest.TestCase):
             health_gap_pass_through=0.0,
             delay_share=0.0,
             substitution_pressure_exponent=1.0,
-            recovery_pressure_sensitivity=0.0,
         )
 
-        self.assertAlmostEqual(history[0]["health_data"]["USA"], 0.648)
-        self.assertGreater(history[-1]["health_data"]["USA"], history[0]["health_data"]["USA"])
+        self.assertAlmostEqual(history[0]["health_data"]["USA"], 0.6)
+        self.assertAlmostEqual(history[-1]["health_data"]["USA"], history[0]["health_data"]["USA"])
 
     def test_health_stays_valid(self) -> None:
         """Health values should stay within [0.0, 1.0]."""
@@ -145,14 +139,12 @@ class TestSimulation(unittest.TestCase):
             inventory_buffer=0.0,
             substitution_rate=0.0,
             trade_pressure_scale=0.0,
-            recovery_rate=0.08,
             inventory_rebuild_rate=0.0,
             health_damage_scale=0.75,
             shortage_damage_scale=0.0,
             persistence=0.3,
             health_gap_pass_through=0.0,
             delay_share=0.0,
-            recovery_pressure_sensitivity=0.0,
         )
         high_history = run_time_step_simulation(
             high_countries,
@@ -162,14 +154,12 @@ class TestSimulation(unittest.TestCase):
             inventory_buffer=0.0,
             substitution_rate=0.0,
             trade_pressure_scale=0.0,
-            recovery_rate=0.08,
             inventory_rebuild_rate=0.0,
             health_damage_scale=0.75,
             shortage_damage_scale=0.0,
             persistence=0.3,
             health_gap_pass_through=0.0,
             delay_share=0.0,
-            recovery_pressure_sensitivity=0.0,
         )
 
         self.assertGreater(
@@ -189,14 +179,12 @@ class TestSimulation(unittest.TestCase):
             inventory_buffer=0.0,
             substitution_rate=0.0,
             trade_pressure_scale=0.0,
-            recovery_rate=0.1,
             inventory_rebuild_rate=0.0,
             health_damage_scale=1.0,
             shortage_damage_scale=0.0,
             persistence=0.0,
             health_gap_pass_through=0.0,
             delay_share=0.0,
-            recovery_pressure_sensitivity=0.0,
         )
 
         self.assertEqual(len(history), 5)
@@ -218,14 +206,12 @@ class TestSimulation(unittest.TestCase):
             substitution_rate=0.0,
             delay_share=0.5,
             trade_pressure_scale=1.0,
-            recovery_rate=0.0,
             inventory_rebuild_rate=0.0,
             health_damage_scale=1.0,
             shortage_damage_scale=0.0,
             persistence=0.0,
             health_gap_pass_through=0.0,
             substitution_pressure_exponent=1.0,
-            recovery_pressure_sensitivity=0.0,
         )
 
         self.assertAlmostEqual(history[0]["shortage_data"]["CAN"], 0.1)

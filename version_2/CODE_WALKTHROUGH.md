@@ -14,7 +14,7 @@ The model says:
 2. Disrupted exporters create trade pressure on their import partners.
 3. Importers try to absorb that pressure through substitution and inventory.
 4. Some unresolved shortage hits immediately, and some is delayed into the next step.
-5. Countries lose health from disruption and shortages, but they also recover over time.
+5. Countries lose health from disruption and shortages.
 6. The process repeats for a fixed number of steps.
 
 This is still a simplified model, but it is more realistic than a pure wave-spreading model because:
@@ -23,7 +23,6 @@ This is still a simplified model, but it is more realistic than a pure wave-spre
 - countries have different resilience profiles
 - substitution is weaker for large shocks than for small shocks
 - shortages can be delayed instead of hitting all at once
-- recovery depends on how much pressure a country is still under
 
 ## 2. Main Files and Their Jobs
 
@@ -92,8 +91,6 @@ Important methods:
   - adds a directed trade edge
 - `apply_shock(shock)`
   - damages health multiplicatively
-- `recover(recovery_rate)`
-  - moves health partway back toward `1.0`
 - `reset_health()`
   - resets the country before a new run
 
@@ -321,8 +318,6 @@ From those values, the model computes:
   - how easily a country can replace missing imports
 - `inventory_buffers`
   - how much shortage it can absorb
-- `recovery_rates`
-  - how quickly it tends to recover
 - `delay_shares`
   - how much unresolved shortage gets pushed into later steps
 
@@ -351,7 +346,6 @@ It receives:
   - `inventory_buffer`
   - `substitution_rate`
   - `delay_share`
-  - `recovery_rate`
 
 and global scalars like:
 
@@ -452,16 +446,6 @@ The damage term is:
 total_damage = disruption * health_damage_scale + shortage * shortage_damage_scale
 ```
 
-Then recovery is applied.
-
-Recovery is no longer flat. It depends on:
-
-- the country's base recovery profile
-- how much disruption it still has
-- how much pressure it is under
-
-So the effective recovery rate becomes smaller when a country is still under stress.
-
 #### Step D: Rebuild inventory
 
 `_rebuild_inventories(...)`
@@ -518,7 +502,7 @@ The simulation no longer stops early when disruptions disappear.
 It continues until `max_steps`, which means:
 
 - early steps can show crisis spread
-- later steps can show recovery and inventory rebuilding
+- later steps can show inventory rebuilding and a stable post-shock state
 
 This matters for the dashboard slider, because now changing `Time steps` actually changes how many steps you can inspect.
 
@@ -632,7 +616,6 @@ The current model is more realistic than the earlier `version_2` state because i
 - better resilience proxies from diversification and import dependence
 - nonlinear substitution instead of a flat percentage
 - delayed shortage carryover
-- pressure-sensitive recovery
 - mild same-step shortage damage
 - a disabled default health-gap feedback loop, which removed the artificial `0.331` health floor problem
 
@@ -659,5 +642,5 @@ If you need to explain the code quickly:
 
 > `version_2` builds a directed trade graph from real GDP and bilateral trade data.  
 > Each edge measures how dependent an importer is on a specific exporter.  
-> The simulation runs in time steps. In each step, disrupted exporters create import pressure, countries absorb part of it through substitution and inventory, some shortage is delayed, remaining shortage becomes new disruption, and countries recover gradually based on how much pressure they are still under.  
+> The simulation runs in time steps. In each step, disrupted exporters create import pressure, countries absorb part of it through substitution and inventory, some shortage is delayed, and remaining shortage becomes new disruption.  
 > The dashboard just replays those saved step snapshots.

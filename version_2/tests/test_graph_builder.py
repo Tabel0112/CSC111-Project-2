@@ -103,10 +103,6 @@ class TestGraphBuilder(unittest.TestCase):
             profiles["inventory_buffers"]["CAN"],
         )
         self.assertGreater(
-            profiles["recovery_rates"]["DEU"],
-            profiles["recovery_rates"]["CAN"],
-        )
-        self.assertGreater(
             profiles["delay_shares"]["DEU"],
             profiles["delay_shares"]["CAN"],
         )

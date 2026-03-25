@@ -222,7 +222,6 @@ def build_country_resilience_profiles(
     """
     substitution_rates = {}
     inventory_buffers = {}
-    recovery_rates = {}
     delay_shares = {}
     diversification_scores = {}
     import_dependency_scores = {}
@@ -270,16 +269,6 @@ def build_country_resilience_profiles(
                 + 0.02 * (1.0 - import_dependency),
             ),
         )
-        recovery_rates[code] = min(
-            0.12,
-            max(
-                0.025,
-                0.03
-                + 0.035 * diversification
-                + 0.025 * (1.0 - import_dependency)
-                + 0.015 * (1.0 - largest_supplier_share),
-            ),
-        )
         delay_shares[code] = min(
             0.45,
             max(
@@ -294,7 +283,6 @@ def build_country_resilience_profiles(
     return {
         "substitution_rates": substitution_rates,
         "inventory_buffers": inventory_buffers,
-        "recovery_rates": recovery_rates,
         "delay_shares": delay_shares,
         "diversification_scores": diversification_scores,
         "import_dependency_scores": import_dependency_scores,

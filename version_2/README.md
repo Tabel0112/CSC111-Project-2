@@ -13,7 +13,6 @@ Countries are graph nodes. Directed edges point from exporter to importer. Each 
 - nonlinear supplier substitution
 - inventory buffering
 - delayed shortage carryover
-- pressure-sensitive recovery
 
 The simulation saves every step and replays the result with Plotly.
 
@@ -151,5 +150,5 @@ For a detailed explanation of how the data is loaded, how resilience profiles ar
 
 - Add sector-level dynamics on top of the time-step model.
 - Support richer coordinate datasets and cleaner map styling.
-- Calibrate recovery, substitution, and inventory rates with external literature or case studies.
+- Calibrate substitution and inventory rates with external literature or case studies.
 - Export wave history to JSON for external analysis.

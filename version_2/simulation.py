@@ -14,8 +14,6 @@ from config import (
     HEALTH_GAP_PASS_THROUGH,
     INVENTORY_REBUILD_RATE,
     MIN_HEALTH_CUTOFF,
-    RECOVERY_RATE,
-    RECOVERY_PRESSURE_SENSITIVITY,
     SHORTAGE_DAMAGE_SCALE,
     SHORTAGE_DELAY_SHARE,
     SUBSTITUTION_RATE,
@@ -104,28 +102,19 @@ def _apply_substitution_and_inventory(
 def _apply_health_updates(
     countries: dict[str, CountryNode],
     disruptions: dict[str, float],
-    import_pressures: dict[str, float],
     shortages: dict[str, float],
-    recovery_rate: float | Mapping[str, float],
     health_damage_scale: float,
     shortage_damage_scale: float,
-    recovery_pressure_sensitivity: float,
 ) -> None:
-    """Apply current disruptions to health and then allow pressure-dependent recovery."""
+    """Apply current disruptions and shortages to health."""
     for code, country in countries.items():
         disruption = clamp_shock(disruptions.get(code, 0.0))
         shortage = clamp_shock(shortages.get(code, 0.0))
-        pressure = clamp_shock(import_pressures.get(code, 0.0))
         total_damage = clamp_shock(
             disruption * health_damage_scale + shortage * shortage_damage_scale
         )
         if total_damage > 0.0:
             country.apply_shock(total_damage)
-
-        base_recovery_rate = clamp_shock(_profile_value(recovery_rate, code))
-        recovery_headwind = clamp_shock(disruption + pressure * recovery_pressure_sensitivity)
-        effective_recovery_rate = base_recovery_rate * (1.0 - recovery_headwind)
-        country.recover(effective_recovery_rate)
 
 
 def _rebuild_inventories(
@@ -203,14 +192,12 @@ def run_time_step_simulation(
     substitution_rate: float | Mapping[str, float] = SUBSTITUTION_RATE,
     delay_share: float | Mapping[str, float] = SHORTAGE_DELAY_SHARE,
     trade_pressure_scale: float = TRADE_PRESSURE_SCALE,
-    recovery_rate: float | Mapping[str, float] = RECOVERY_RATE,
     inventory_rebuild_rate: float = INVENTORY_REBUILD_RATE,
     health_damage_scale: float = HEALTH_DAMAGE_SCALE,
     shortage_damage_scale: float = SHORTAGE_DAMAGE_SCALE,
     persistence: float = DISRUPTION_PERSISTENCE,
     health_gap_pass_through: float = HEALTH_GAP_PASS_THROUGH,
     substitution_pressure_exponent: float = SUBSTITUTION_PRESSURE_EXPONENT,
-    recovery_pressure_sensitivity: float = RECOVERY_PRESSURE_SENSITIVITY,
 ) -> list[dict[str, Any]]:
     """Run the time-step simulation and return replay-friendly snapshots."""
     step_history = []
@@ -235,12 +222,9 @@ def run_time_step_simulation(
         _apply_health_updates(
             countries,
             current_disruptions,
-            import_pressures,
             shortages,
-            recovery_rate,
             health_damage_scale,
             shortage_damage_scale,
-            recovery_pressure_sensitivity,
         )
         inventories = _rebuild_inventories(
             countries,
