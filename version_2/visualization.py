@@ -263,14 +263,3 @@ def create_simulation_figure(
         )
 
     return figure
-
-
-def show_simulation(
-    countries: dict[str, CountryNode],
-    step_history: list[dict[str, object]],
-    visible_codes: set[str],
-    show_edges: bool = SHOW_EDGES,
-) -> None:
-    """Display the simulation figure."""
-    figure = create_simulation_figure(countries, step_history, visible_codes, show_edges)
-    figure.show(renderer="browser")

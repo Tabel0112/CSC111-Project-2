@@ -30,22 +30,14 @@ This is still a simplified model, but it is more realistic than a pure wave-spre
 
 This is the entry point.
 
-It does two different things depending on the arguments:
-
-- `python main.py`
-  - starts the Dash browser interface
-- `python main.py --cli`
-  - uses the older terminal + Plotly flow
+Running `python main.py` starts the Dash browser interface.
 
 Important functions:
 
 - `parse_arguments()`
-  - reads command-line arguments
-- `load_project_graph(args)`
-  - loads GDP, trade, and coordinate files
-  - builds the country graph
+  - reads command-line arguments used to bootstrap the dashboard
 - `main()`
-  - decides whether to run the dashboard or CLI flow
+  - launches the dashboard
 
 ### `data_parser.py`
 
@@ -137,10 +129,8 @@ Important functions:
 
 This handles:
 
-- country-name parsing
-- multi-country initial shock setup
+- parsing default dashboard selections
 - visibility selection
-- CLI prompts
 
 ### `dashboard.py`
 
@@ -175,8 +165,7 @@ the code path is:
 
 1. `main.py -> parse_arguments()`
 2. `main.py -> main()`
-3. since `--cli` is not present:
-4. `dashboard.run_dashboard(args)`
+3. `dashboard.run_dashboard(args)`
 
 Inside `run_dashboard(args)`:
 
@@ -192,7 +181,7 @@ The graph is loaded only once when the dashboard starts. The simulation itself r
 
 ## 4. Data Loading and Graph Construction
 
-The dashboard and CLI both use the same graph-loading path.
+The dashboard loads the graph once at startup.
 
 ### 4.1 GDP Loading
 
@@ -555,7 +544,7 @@ The slider value is the current displayed step.
 - `create_step_figure(...)`
   - used by the dashboard
 - `create_simulation_figure(...)`
-  - used by the old CLI Plotly replay mode
+  - builds a full animated Plotly figure when a replay-style figure is needed
 
 ### 9.1 Country colors
 
@@ -617,7 +606,7 @@ The current model is more realistic than the earlier `version_2` state because i
 - nonlinear substitution instead of a flat percentage
 - delayed shortage carryover
 - mild same-step shortage damage
-- a disabled default health-gap feedback loop, which removed the artificial `0.331` health floor problem
+- no health-gap feedback loop, which avoids the artificial `0.331` health floor problem
 
 ## 12. What Is Still Simplified
 

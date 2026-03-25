@@ -55,7 +55,6 @@ class TestSimulation(unittest.TestCase):
             health_damage_scale=1.0,
             shortage_damage_scale=0.0,
             persistence=0.0,
-            health_gap_pass_through=0.0,
             delay_share=0.0,
             substitution_pressure_exponent=1.0,
         )
@@ -81,7 +80,6 @@ class TestSimulation(unittest.TestCase):
             health_damage_scale=1.0,
             shortage_damage_scale=0.0,
             persistence=0.0,
-            health_gap_pass_through=0.0,
             delay_share=0.0,
             substitution_pressure_exponent=1.0,
         )
@@ -92,7 +90,7 @@ class TestSimulation(unittest.TestCase):
         self.assertEqual(history[2]["shock_data"], {})
 
     def test_health_stays_flat_when_no_new_damage_occurs(self) -> None:
-        """Without healing, health should stay at the post-shock level once pressure stops."""
+        """Health should stay at the post-shock level once pressure stops."""
         usa = CountryNode("USA", "United States", 100.0)
         countries = {"USA": usa}
 
@@ -108,7 +106,6 @@ class TestSimulation(unittest.TestCase):
             health_damage_scale=1.0,
             shortage_damage_scale=0.0,
             persistence=0.0,
-            health_gap_pass_through=0.0,
             delay_share=0.0,
             substitution_pressure_exponent=1.0,
         )
@@ -143,7 +140,6 @@ class TestSimulation(unittest.TestCase):
             health_damage_scale=0.75,
             shortage_damage_scale=0.0,
             persistence=0.3,
-            health_gap_pass_through=0.0,
             delay_share=0.0,
         )
         high_history = run_time_step_simulation(
@@ -158,7 +154,6 @@ class TestSimulation(unittest.TestCase):
             health_damage_scale=0.75,
             shortage_damage_scale=0.0,
             persistence=0.3,
-            health_gap_pass_through=0.0,
             delay_share=0.0,
         )
 
@@ -168,7 +163,7 @@ class TestSimulation(unittest.TestCase):
         )
 
     def test_simulation_runs_full_requested_step_count(self) -> None:
-        """The simulation should continue through max_steps so later recovery is visible."""
+        """The simulation should continue through max_steps even after shocks stop."""
         countries = {"USA": CountryNode("USA", "United States", 100.0)}
 
         history = run_time_step_simulation(
@@ -183,7 +178,6 @@ class TestSimulation(unittest.TestCase):
             health_damage_scale=1.0,
             shortage_damage_scale=0.0,
             persistence=0.0,
-            health_gap_pass_through=0.0,
             delay_share=0.0,
         )
 
@@ -210,7 +204,6 @@ class TestSimulation(unittest.TestCase):
             health_damage_scale=1.0,
             shortage_damage_scale=0.0,
             persistence=0.0,
-            health_gap_pass_through=0.0,
             substitution_pressure_exponent=1.0,
         )
 

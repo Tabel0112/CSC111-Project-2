@@ -86,21 +86,6 @@ def sync_shock_rows(
     return rows
 
 
-def shock_rows_to_initial_inputs(rows: list[dict[str, object]]) -> tuple[str, str]:
-    """Convert editable shock table rows to runtime input strings."""
-    country_names = []
-    shocks = []
-
-    for row in rows:
-        country_name = str(row.get("country", "")).strip()
-        shock = float(row.get("shock", DEFAULT_INITIAL_SHOCK))
-        if country_name:
-            country_names.append(country_name)
-            shocks.append(str(shock))
-
-    return "; ".join(country_names), ",".join(shocks)
-
-
 def _load_base_graph(args: Namespace) -> dict[str, CountryNode]:
     """Load the unfiltered graph used by the dashboard."""
     coordinates = load_country_coordinates(args.coord_file)

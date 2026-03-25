@@ -20,10 +20,9 @@ The simulation saves every step and replays the result with Plotly.
 
 - `main.py`: Runs the full program.
 - `country_node.py`: Defines the `CountryNode` class.
-- `country_input.py`: Resolves typed country names and typo suggestions.
 - `data_parser.py`: Loads GDP, trade, and coordinate CSV files.
 - `graph_builder.py`: Builds and filters the dictionary-based graph.
-- `runtime_options.py`: Handles interactive prompts and runtime shock settings.
+- `runtime_options.py`: Stores small parsing helpers used by the dashboard.
 - `simulation.py`: Runs the repeated time-step disruption simulation.
 - `visualization.py`: Creates the Plotly replay visualization.
 - `config.py`: Stores constants and default file paths.
@@ -57,12 +56,6 @@ python main.py
 
 This now opens the browser dashboard by default.
 
-To use the older terminal + Plotly flow instead:
-
-```bash
-python main.py --cli
-```
-
 If port `8050` is already in use, the dashboard now automatically moves to the next free port.
 You can also choose a port yourself:
 
@@ -73,16 +66,7 @@ python main.py --port 8060
 Useful optional arguments:
 
 - `--initial-countries "United States; China; Germany; Japan; India"`
-- `--initial-shock 0.2`
-- `--initial-shocks "0.35,0.3,0.25,0.2,0.18"`
-- `--threshold 0.004`
-- `--steps 18`
-- `--top-n 180`
-- `--top-k 60`
 - `--port 8050`
-- `--visible-by trade`
-- `--no-prompt`
-- `--cli`
 - `--hide-edges`
 
 ## Data Expectations

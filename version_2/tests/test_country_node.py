@@ -35,14 +35,5 @@ class TestCountryNode(unittest.TestCase):
 
         self.assertEqual(usa.current_health, 1.0)
 
-    def test_recover_moves_health_toward_one(self) -> None:
-        """Recovering should partially restore health without exceeding 1.0."""
-        usa = CountryNode("USA", "United States", 10.0)
-        usa.apply_shock(0.5)
-        usa.recover(0.2)
-
-        self.assertAlmostEqual(usa.current_health, 0.6)
-
-
 if __name__ == "__main__":
     unittest.main()

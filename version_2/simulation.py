@@ -1,4 +1,4 @@
-"""Time-step trade disruption simulation with recovery and buffering."""
+"""Time-step trade disruption simulation with buffering and persistence."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ from config import (
     DEFAULT_TIME_STEPS,
     DISRUPTION_PERSISTENCE,
     HEALTH_DAMAGE_SCALE,
-    HEALTH_GAP_PASS_THROUGH,
     INVENTORY_REBUILD_RATE,
     MIN_HEALTH_CUTOFF,
     SHORTAGE_DAMAGE_SCALE,
@@ -141,18 +140,13 @@ def _compute_next_disruptions(
     shortages: dict[str, float],
     threshold: float,
     persistence: float,
-    health_gap_pass_through: float,
 ) -> dict[str, float]:
     """Return the disruption levels for the next step."""
     next_disruptions = {}
 
     for code, country in countries.items():
         lingering_disruption = clamp_shock(current_disruptions.get(code, 0.0) * persistence)
-        persistent_output_gap = 0.0
-        if health_gap_pass_through > 0.0 and (shortages.get(code, 0.0) > 0.0 or lingering_disruption > 0.0):
-            persistent_output_gap = clamp_shock((1.0 - country.current_health) * health_gap_pass_through)
-
-        next_impact = clamp_shock(max(shortages.get(code, 0.0), lingering_disruption, persistent_output_gap))
+        next_impact = clamp_shock(max(shortages.get(code, 0.0), lingering_disruption))
         if next_impact >= threshold and country.current_health > MIN_HEALTH_CUTOFF:
             next_disruptions[code] = next_impact
 
@@ -196,7 +190,6 @@ def run_time_step_simulation(
     health_damage_scale: float = HEALTH_DAMAGE_SCALE,
     shortage_damage_scale: float = SHORTAGE_DAMAGE_SCALE,
     persistence: float = DISRUPTION_PERSISTENCE,
-    health_gap_pass_through: float = HEALTH_GAP_PASS_THROUGH,
     substitution_pressure_exponent: float = SUBSTITUTION_PRESSURE_EXPONENT,
 ) -> list[dict[str, Any]]:
     """Run the time-step simulation and return replay-friendly snapshots."""
@@ -255,7 +248,6 @@ def run_time_step_simulation(
             shortages,
             threshold,
             persistence,
-            health_gap_pass_through,
         )
 
     return step_history

@@ -8,9 +8,9 @@ from country_node import CountryNode
 from dashboard import (
     _build_slider_marks,
     _run_simulation_from_controls,
-    shock_rows_to_initial_inputs,
     sync_shock_rows,
 )
+from runtime_options import choose_visible_country_codes
 
 
 class TestDashboardHelpers(unittest.TestCase):
@@ -30,18 +30,6 @@ class TestDashboardHelpers(unittest.TestCase):
 
         self.assertEqual(rows[0]["shock"], 0.42)
         self.assertEqual(rows[1]["country"], "Germany")
-
-    def test_shock_rows_to_initial_inputs_formats_strings(self) -> None:
-        """Table rows should convert cleanly into runtime strings."""
-        initial_countries, initial_shocks = shock_rows_to_initial_inputs(
-            [
-                {"code": "USA", "country": "United States", "shock": 0.4},
-                {"code": "DEU", "country": "Germany", "shock": 0.25},
-            ]
-        )
-
-        self.assertEqual(initial_countries, "United States; Germany")
-        self.assertEqual(initial_shocks, "0.4,0.25")
 
     def test_build_slider_marks_covers_endpoints(self) -> None:
         """Slider marks should always include the first and last step."""
@@ -71,6 +59,21 @@ class TestDashboardHelpers(unittest.TestCase):
 
         self.assertEqual(len(simulation_data["step_history"]), 3)
         self.assertIn("Selected 1 countries.", status)
+
+    def test_choose_visible_country_codes_keeps_pressured_countries(self) -> None:
+        """Pressured countries should remain visible even when outside the top-n ranking."""
+        countries = {
+            "USA": CountryNode("USA", "United States", 100.0),
+            "CHN": CountryNode("CHN", "China", 90.0),
+            "ATG": CountryNode("ATG", "Antigua and Barbuda", 1.0),
+        }
+        step_history = [
+            {"step": 0, "shock_data": {"USA": 0.2}, "health_data": {}, "pressure_data": {"ATG": 0.05}},
+        ]
+
+        visible_codes = choose_visible_country_codes(countries, step_history, top_n=2, metric="gdp")
+
+        self.assertEqual(visible_codes, {"USA", "CHN", "ATG"})
 
 
 if __name__ == "__main__":

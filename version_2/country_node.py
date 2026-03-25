@@ -58,15 +58,6 @@ class CountryNode:
         """Reset this country's health to an undamaged state."""
         self.current_health = 1.0
 
-    def recover(self, recovery_rate: float) -> float:
-        """Move health part of the way back toward 1.0."""
-        bounded_rate = max(0.0, min(recovery_rate, 1.0))
-        self.current_health = min(
-            1.0,
-            self.current_health + (1.0 - self.current_health) * bounded_rate,
-        )
-        return self.current_health
-
     def __hash__(self) -> int:
         """Return a hash based on the ISO-3 code."""
         return hash(self.code)
