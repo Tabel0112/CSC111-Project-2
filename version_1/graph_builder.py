@@ -1,0 +1,161 @@
+"""Helpers for building and filtering the directed trade graph."""
+
+from __future__ import annotations
+
+from config import MAX_EDGE_WEIGHT
+from country_node import CountryNode
+from utils import sort_countries_by_gdp
+
+
+def build_country_nodes(
+    gdp_data: dict[str, dict[str, object]],
+    coordinates: dict[str, tuple[float, float]],
+) -> dict[str, CountryNode]:
+    """Build CountryNode objects from GDP and coordinate data."""
+    countries = {}
+
+    for code, details in gdp_data.items():
+        lat, lon = coordinates.get(code, (0.0, 0.0))
+        countries[code] = CountryNode(
+            code=code,
+            name=str(details["name"]),
+            total_gdp=float(details["gdp"]),
+            lat=lat,
+            lon=lon,
+        )
+
+    return countries
+
+
+def compute_edge_weight(trade_value: float, importer_gdp: float) -> float:
+    """Return the directed trade dependency weight."""
+    if importer_gdp <= 0:
+        return 0.0
+    return min(trade_value / importer_gdp, MAX_EDGE_WEIGHT)
+
+
+def add_trade_edges(
+    countries: dict[str, CountryNode],
+    trade_data: list[dict[str, object]],
+) -> None:
+    """Add directed weighted edges from exporter to importer."""
+    for row in trade_data:
+        exporter_code = str(row["exporter_code"])
+        importer_code = str(row["importer_code"])
+
+        if exporter_code not in countries or importer_code not in countries:
+            continue
+
+        exporter = countries[exporter_code]
+        importer = countries[importer_code]
+        trade_value = float(row["trade_value"])
+        weight = compute_edge_weight(trade_value, importer.total_gdp)
+
+        if weight > 0:
+            exporter.add_trading_partner(importer, weight)
+
+
+def build_trade_graph(
+    gdp_data: dict[str, dict[str, object]],
+    trade_data: list[dict[str, object]],
+    coordinates: dict[str, tuple[float, float]],
+) -> dict[str, CountryNode]:
+    """Build the full graph from cleaned GDP, trade, and coordinate data."""
+    countries = build_country_nodes(gdp_data, coordinates)
+    add_trade_edges(countries, trade_data)
+    return countries
+
+
+def reset_all_countries(countries: dict[str, CountryNode]) -> None:
+    """Reset every country to full health."""
+    for country in countries.values():
+        country.reset_health()
+
+
+def get_top_countries_by_gdp(
+    countries: dict[str, CountryNode],
+    top_n: int,
+) -> list[CountryNode]:
+    """Return the top <top_n> countries by GDP."""
+    ordered = sort_countries_by_gdp(countries)
+    return ordered[:top_n]
+
+
+def get_visible_country_codes(
+    countries: dict[str, CountryNode],
+    top_n: int,
+) -> set[str]:
+    """Return the ISO-3 codes of the top GDP countries."""
+    return {country.code for country in get_top_countries_by_gdp(countries, top_n)}
+
+
+def _compute_incoming_weight_totals(
+    countries: dict[str, CountryNode],
+) -> dict[str, float]:
+    """Return summed incoming edge weights for each country."""
+    incoming_totals = {code: 0.0 for code in countries}
+    for exporter in countries.values():
+        for importer, weight in exporter.trading_partners.items():
+            incoming_totals[importer.code] += weight
+    return incoming_totals
+
+
+def _rank_countries_by_metric(
+    countries: dict[str, CountryNode],
+    metric: str,
+) -> list[CountryNode]:
+    """Return countries ordered by the requested visibility metric."""
+    if metric == "gdp":
+        return get_top_countries_by_gdp(countries, len(countries))
+
+    incoming_totals = _compute_incoming_weight_totals(countries)
+
+    if metric == "exports":
+        return sorted(
+            countries.values(),
+            key=lambda country: (-sum(country.trading_partners.values()), country.code),
+        )
+
+    if metric == "imports":
+        return sorted(
+            countries.values(),
+            key=lambda country: (-incoming_totals[country.code], country.code),
+        )
+
+    if metric == "trade":
+        return sorted(
+            countries.values(),
+            key=lambda country: (
+                -(sum(country.trading_partners.values()) + incoming_totals[country.code]),
+                country.code,
+            ),
+        )
+
+    raise ValueError(f"Unsupported visibility metric: {metric}")
+
+
+def get_visible_country_codes_by_metric(
+    countries: dict[str, CountryNode],
+    top_n: int,
+    metric: str,
+) -> set[str]:
+    """Return visible country codes using GDP, export, import, or total-trade ranking."""
+    ordered = _rank_countries_by_metric(countries, metric)
+    return {country.code for country in ordered[:top_n]}
+
+
+def limit_top_k_partners(
+    countries: dict[str, CountryNode],
+    top_k: int,
+) -> None:
+    """Keep only the top-k outgoing partners for each country."""
+    if top_k <= 0:
+        return
+
+    for country in countries.values():
+        ordered = sorted(
+            country.trading_partners.items(),
+            key=lambda item: item[1],
+            reverse=True,
+        )
+        country.trading_partners = dict(ordered[:top_k])
