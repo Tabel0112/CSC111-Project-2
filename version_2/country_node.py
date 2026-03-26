@@ -16,7 +16,7 @@ class CountryNode:
     - total_imports: Sum of all imports for each country
     - total_exports: Sum of all exports for each country
     - current_health: Percentage representing current financial status of the country
-    - trading_partners: Dictionary representing each neighbors and weighted edge
+    - trading_partners: Dictionary representing each neighbor and bilateral edge weights
     """
     
     code: str
@@ -27,7 +27,7 @@ class CountryNode:
     total_imports: float
     total_exports: float
     current_health: float
-    trading_partners: dict[CountryNode, float]
+    trading_partners: dict[CountryNode, dict[str, float]]
 
     def __init__(
         self,
@@ -50,10 +50,18 @@ class CountryNode:
         self.current_health = 1.0
         self.trading_partners = {}
 
-    def add_trading_partner(self, partner: CountryNode, weight: float) -> None:
-        """Add or update a directed edge to <partner>."""
-        if weight > 0:
-            self.trading_partners[partner] = weight
+    def add_trading_partner(
+        self,
+        partner: CountryNode,
+        supply_weight: float,
+        demand_weight: float = 0.0,
+    ) -> None:
+        """Add or update a directed edge to <partner> with bilateral weights."""
+        if supply_weight > 0 or demand_weight > 0:
+            self.trading_partners[partner] = {
+                "supply_weight": max(0.0, supply_weight),
+                "demand_weight": max(0.0, demand_weight),
+            }
 
     def apply_shock(self, shock: float, cutoff: float = MIN_HEALTH_CUTOFF) -> float:
         """Apply a multiplicative shock and return the updated health."""

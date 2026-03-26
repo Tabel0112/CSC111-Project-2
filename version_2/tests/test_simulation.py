@@ -61,6 +61,31 @@ class TestSimulation(unittest.TestCase):
 
         self.assertAlmostEqual(history[1]["shock_data"]["CAN"], 0.2)
 
+    def test_importer_disruption_can_push_back_on_exporter(self) -> None:
+        """A disrupted importer should create reverse demand pressure on its exporter."""
+        usa = CountryNode("USA", "United States", 100.0)
+        can = CountryNode("CAN", "Canada", 50.0)
+        usa.add_trading_partner(can, 0.0, 0.4)
+        countries = {"USA": usa, "CAN": can}
+
+        history = run_time_step_simulation(
+            countries,
+            {"CAN": 0.5},
+            threshold=0.01,
+            max_steps=3,
+            inventory_buffer=0.0,
+            substitution_rate=0.0,
+            trade_pressure_scale=1.0,
+            inventory_rebuild_rate=0.0,
+            health_damage_scale=1.0,
+            shortage_damage_scale=0.0,
+            persistence=0.0,
+            delay_share=0.0,
+            substitution_pressure_exponent=1.0,
+        )
+
+        self.assertAlmostEqual(history[1]["shock_data"]["USA"], 0.09)
+
     def test_inventory_can_absorb_first_round_shortage(self) -> None:
         """Inventory should be able to stop a small shortage from propagating."""
         usa = CountryNode("USA", "United States", 100.0)

@@ -14,10 +14,11 @@ class TestCountryNode(unittest.TestCase):
         """Adding a partner should store the edge weight."""
         usa = CountryNode("USA", "United States", 10.0)
         can = CountryNode("CAN", "Canada", 5.0)
-        usa.add_trading_partner(can, 0.25)
+        usa.add_trading_partner(can, 0.25, 0.1)
 
         self.assertIn(can, usa.trading_partners)
-        self.assertAlmostEqual(usa.trading_partners[can], 0.25)
+        self.assertAlmostEqual(usa.trading_partners[can]["supply_weight"], 0.25)
+        self.assertAlmostEqual(usa.trading_partners[can]["demand_weight"], 0.1)
 
     def test_apply_shock(self) -> None:
         """Applying a shock should reduce health multiplicatively."""

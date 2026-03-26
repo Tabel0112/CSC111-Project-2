@@ -45,10 +45,12 @@ class TestVisualization(unittest.TestCase):
             },
         ]
 
-        figure = create_simulation_figure(countries, wave_history, {"USA", "CAN", "MEX"})
+        figure = create_simulation_figure(countries, wave_history, {"USA", "CAN", "MEX"}, show_edges=True)
 
-        self.assertIsInstance(figure.data[1], go.Choropleth)
-        self.assertIsInstance(figure.data[2], go.Scattergeo)
+        self.assertTrue(any(isinstance(trace, go.Choropleth) for trace in figure.data))
+        self.assertTrue(
+            any(isinstance(trace, go.Scattergeo) and trace.mode == "markers" for trace in figure.data)
+        )
 
     def test_edges_only_follow_currently_active_wave(self) -> None:
         """Edge traces should only include lines touching the active wave countries."""
@@ -70,10 +72,16 @@ class TestVisualization(unittest.TestCase):
             },
         ]
 
-        figure = create_simulation_figure(countries, wave_history, {"USA", "CAN", "MEX"})
+        figure = create_simulation_figure(countries, wave_history, {"USA", "CAN", "MEX"}, show_edges=True)
 
-        base_edge_trace = figure.data[0]
-        next_edge_trace = figure.frames[1].data[0]
+        base_edge_trace = next(
+            trace for trace in figure.data
+            if isinstance(trace, go.Scattergeo) and trace.mode == "lines"
+        )
+        next_edge_trace = next(
+            trace for trace in figure.frames[1].data
+            if isinstance(trace, go.Scattergeo) and trace.mode == "lines"
+        )
 
         self.assertEqual(base_edge_trace.lat.count(None), 2)
         self.assertEqual(next_edge_trace.lat.count(None), 2)

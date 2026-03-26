@@ -10,7 +10,8 @@ from graph_builder import (
     build_country_resilience_profiles,
     build_trade_graph,
     clone_trade_graph,
-    compute_edge_weight,
+    compute_demand_weight,
+    compute_supply_weight,
     get_visible_country_codes_by_metric,
 )
 
@@ -20,10 +21,11 @@ class TestGraphBuilder(unittest.TestCase):
 
     def test_edge_weight_is_capped(self) -> None:
         """Very large trade ratios should be capped for stability."""
-        self.assertEqual(compute_edge_weight(90.0, 100.0), MAX_EDGE_WEIGHT)
+        self.assertEqual(compute_supply_weight(90.0, 100.0), MAX_EDGE_WEIGHT)
+        self.assertEqual(compute_demand_weight(90.0, 100.0), MAX_EDGE_WEIGHT)
 
-    def test_edge_weight_uses_importer_total_imports(self) -> None:
-        """Edges should be scaled by importer total imports."""
+    def test_edge_weight_uses_importer_and_exporter_totals(self) -> None:
+        """Edges should store both supply-side and demand-side dependence."""
         gdp_data = {
             "USA": {"name": "United States", "gdp": 100.0},
             "CAN": {"name": "Canada", "gdp": 50.0},
@@ -39,7 +41,8 @@ class TestGraphBuilder(unittest.TestCase):
         usa = countries["USA"]
         can = countries["CAN"]
 
-        self.assertAlmostEqual(usa.trading_partners[can], 0.25)
+        self.assertAlmostEqual(usa.trading_partners[can]["supply_weight"], 0.25)
+        self.assertAlmostEqual(usa.trading_partners[can]["demand_weight"], MAX_EDGE_WEIGHT)
 
     def test_visible_country_codes_can_rank_by_exports(self) -> None:
         """Visibility ranking should support export-based ordering."""

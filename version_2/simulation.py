@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from config import (
+    DEMAND_PRESSURE_SCALE,
     DEFAULT_INVENTORY_BUFFER,
     DEFAULT_THRESHOLD,
     DEFAULT_TIME_STEPS,
@@ -39,14 +40,23 @@ def _compute_trade_pressures(
     countries: dict[str, CountryNode],
     disruptions: dict[str, float],
     trade_pressure_scale: float,
+    demand_pressure_scale: float,
 ) -> dict[str, float]:
-    """Return import pressure created by the currently disrupted exporters."""
+    """Return bilateral pressure created by disrupted exporters and importers."""
     pressures = {code: 0.0 for code in countries}
 
-    for exporter_code, disruption in disruptions.items():
-        exporter = countries[exporter_code]
-        for importer, weight in exporter.trading_partners.items():
-            pressures[importer.code] += disruption * weight * trade_pressure_scale
+    for exporter in countries.values():
+        exporter_disruption = clamp_shock(disruptions.get(exporter.code, 0.0))
+        for importer, weights in exporter.trading_partners.items():
+            supply_weight = float(weights["supply_weight"])
+            demand_weight = float(weights["demand_weight"])
+            importer_disruption = clamp_shock(disruptions.get(importer.code, 0.0))
+
+            if exporter_disruption > 0.0 and supply_weight > 0.0:
+                pressures[importer.code] += exporter_disruption * supply_weight * trade_pressure_scale
+
+            if importer_disruption > 0.0 and demand_weight > 0.0:
+                pressures[exporter.code] += importer_disruption * demand_weight * demand_pressure_scale
 
     return {
         code: clamp_shock(total_pressure)
@@ -186,6 +196,7 @@ def run_time_step_simulation(
     substitution_rate: float | Mapping[str, float] = SUBSTITUTION_RATE,
     delay_share: float | Mapping[str, float] = SHORTAGE_DELAY_SHARE,
     trade_pressure_scale: float = TRADE_PRESSURE_SCALE,
+    demand_pressure_scale: float = DEMAND_PRESSURE_SCALE,
     inventory_rebuild_rate: float = INVENTORY_REBUILD_RATE,
     health_damage_scale: float = HEALTH_DAMAGE_SCALE,
     shortage_damage_scale: float = SHORTAGE_DAMAGE_SCALE,
@@ -202,7 +213,12 @@ def run_time_step_simulation(
     deferred_shortages = {code: 0.0 for code in countries}
 
     for step in range(max_steps):
-        trade_pressures = _compute_trade_pressures(countries, current_disruptions, trade_pressure_scale)
+        trade_pressures = _compute_trade_pressures(
+            countries,
+            current_disruptions,
+            trade_pressure_scale,
+            demand_pressure_scale,
+        )
         import_pressures = _combine_pressures(trade_pressures, deferred_shortages)
         shortages, depleted_inventories, deferred_shortages = _apply_substitution_and_inventory(
             countries,

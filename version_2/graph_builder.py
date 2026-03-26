@@ -29,11 +29,18 @@ def build_country_nodes(
     return countries
 
 
-def compute_edge_weight(trade_value: float, importer_total_imports: float) -> float:
+def compute_supply_weight(trade_value: float, importer_total_imports: float) -> float:
     """Return the exporter share of the importer's total imports."""
     if importer_total_imports <= 0:
         return 0.0
     return min(trade_value / importer_total_imports, MAX_EDGE_WEIGHT)
+
+
+def compute_demand_weight(trade_value: float, exporter_total_exports: float) -> float:
+    """Return the importer share of the exporter's total exports."""
+    if exporter_total_exports <= 0:
+        return 0.0
+    return min(trade_value / exporter_total_exports, MAX_EDGE_WEIGHT)
 
 
 def _compute_import_totals(
@@ -53,12 +60,30 @@ def _compute_import_totals(
     return totals
 
 
+def _compute_export_totals(
+    countries: dict[str, CountryNode],
+    trade_data: list[dict[str, object]],
+) -> dict[str, float]:
+    """Return total exports for each exporter present in the graph."""
+    totals = {code: 0.0 for code in countries}
+
+    for row in trade_data:
+        exporter_code = str(row["exporter_code"])
+        importer_code = str(row["importer_code"])
+        if exporter_code not in countries or importer_code not in countries:
+            continue
+        totals[exporter_code] += float(row["trade_value"])
+
+    return totals
+
+
 def add_trade_edges(
     countries: dict[str, CountryNode],
     trade_data: list[dict[str, object]],
 ) -> None:
     """Add directed weighted edges from exporter to importer."""
     import_totals = _compute_import_totals(countries, trade_data)
+    export_totals = _compute_export_totals(countries, trade_data)
 
     for row in trade_data:
         exporter_code = str(row["exporter_code"])
@@ -70,12 +95,13 @@ def add_trade_edges(
         exporter = countries[exporter_code]
         importer = countries[importer_code]
         trade_value = float(row["trade_value"])
-        weight = compute_edge_weight(trade_value, import_totals[importer_code])
+        supply_weight = compute_supply_weight(trade_value, import_totals[importer_code])
+        demand_weight = compute_demand_weight(trade_value, export_totals[exporter_code])
         exporter.total_exports += trade_value
         importer.total_imports += trade_value
 
-        if weight > 0:
-            exporter.add_trading_partner(importer, weight)
+        if supply_weight > 0 or demand_weight > 0:
+            exporter.add_trading_partner(importer, supply_weight, demand_weight)
 
 
 def build_trade_graph(
@@ -106,8 +132,12 @@ def clone_trade_graph(countries: dict[str, CountryNode]) -> dict[str, CountryNod
 
     for exporter in countries.values():
         cloned_exporter = cloned[exporter.code]
-        for importer, weight in exporter.trading_partners.items():
-            cloned_exporter.add_trading_partner(cloned[importer.code], weight)
+        for importer, weights in exporter.trading_partners.items():
+            cloned_exporter.add_trading_partner(
+                cloned[importer.code],
+                float(weights["supply_weight"]),
+                float(weights["demand_weight"]),
+            )
 
     return cloned
 
@@ -141,8 +171,8 @@ def _compute_incoming_weight_totals(
     """Return summed incoming edge weights for each country."""
     incoming_totals = {code: 0.0 for code in countries}
     for exporter in countries.values():
-        for importer, weight in exporter.trading_partners.items():
-            incoming_totals[importer.code] += weight
+        for importer, weights in exporter.trading_partners.items():
+            incoming_totals[importer.code] += float(weights["supply_weight"])
     return incoming_totals
 
 
@@ -159,7 +189,10 @@ def _rank_countries_by_metric(
     if metric == "exports":
         return sorted(
             countries.values(),
-            key=lambda country: (-sum(country.trading_partners.values()), country.code),
+            key=lambda country: (
+                -sum(float(weights["supply_weight"]) for weights in country.trading_partners.values()),
+                country.code,
+            ),
         )
 
     if metric == "imports":
@@ -172,7 +205,10 @@ def _rank_countries_by_metric(
         return sorted(
             countries.values(),
             key=lambda country: (
-                -(sum(country.trading_partners.values()) + incoming_totals[country.code]),
+                -(
+                    sum(float(weights["supply_weight"]) for weights in country.trading_partners.values())
+                    + incoming_totals[country.code]
+                ),
                 country.code,
             ),
         )
@@ -197,8 +233,8 @@ def _compute_import_share_lists(
     share_lists = {code: [] for code in countries}
 
     for exporter in countries.values():
-        for importer, weight in exporter.trading_partners.items():
-            share_lists[importer.code].append(weight)
+        for importer, weights in exporter.trading_partners.items():
+            share_lists[importer.code].append(float(weights["supply_weight"]))
 
     return share_lists
 
@@ -301,7 +337,10 @@ def limit_top_k_partners(
     for country in countries.values():
         ordered = sorted(
             country.trading_partners.items(),
-            key=lambda item: item[1],
+            key=lambda item: (
+                float(item[1]["supply_weight"]) + float(item[1]["demand_weight"]),
+                item[0].code,
+            ),
             reverse=True,
         )
         country.trading_partners = dict(ordered[:top_k])
