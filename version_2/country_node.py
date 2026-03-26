@@ -6,8 +6,19 @@ from config import MIN_HEALTH_CUTOFF
 
 
 class CountryNode:
-    """A country in the macroeconomic trade graph."""
-
+    """A country in the macroeconomic trade graph.
+    Instance Attributes:
+    - code: Alpha-3 code for each country
+    - name: Full name of each country
+    - total_gdp: Nominal GDP of each country
+    - lat: Latitude coordinate of each country
+    - lon: Longitude coordinate of each country
+    - total_imports: Sum of all imports for each country
+    - total_exports: Sum of all exports for each country
+    - current_health: Percentage representing current financial status of the country
+    - trading_partners: Dictionary representing each neighbors and weighted edge
+    """
+    
     code: str
     name: str
     total_gdp: float
