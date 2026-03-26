@@ -1,2 +1,3 @@
+# for graphics and data visualization
 plotly>=5.0
 dash>=2.18
