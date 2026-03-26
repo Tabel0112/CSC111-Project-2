@@ -57,6 +57,8 @@ class TestSimulation(unittest.TestCase):
             persistence=0.0,
             delay_share=0.0,
             substitution_pressure_exponent=1.0,
+            substitution_concentration_penalty=0.0,
+            inventory_stress_penalty=0.0,
         )
 
         self.assertAlmostEqual(history[1]["shock_data"]["CAN"], 0.2)
@@ -82,9 +84,11 @@ class TestSimulation(unittest.TestCase):
             persistence=0.0,
             delay_share=0.0,
             substitution_pressure_exponent=1.0,
+            substitution_concentration_penalty=0.0,
+            inventory_stress_penalty=0.0,
         )
 
-        self.assertAlmostEqual(history[1]["shock_data"]["USA"], 0.09)
+        self.assertAlmostEqual(history[1]["shock_data"]["USA"], 0.14)
 
     def test_inventory_can_absorb_first_round_shortage(self) -> None:
         """Inventory should be able to stop a small shortage from propagating."""
@@ -107,6 +111,8 @@ class TestSimulation(unittest.TestCase):
             persistence=0.0,
             delay_share=0.0,
             substitution_pressure_exponent=1.0,
+            substitution_concentration_penalty=0.0,
+            inventory_stress_penalty=0.0,
         )
 
         self.assertEqual(len(history), 1)
@@ -131,6 +137,8 @@ class TestSimulation(unittest.TestCase):
             persistence=0.0,
             delay_share=0.0,
             substitution_pressure_exponent=1.0,
+            substitution_concentration_penalty=0.0,
+            inventory_stress_penalty=0.0,
         )
 
         self.assertAlmostEqual(history[0]["health_data"]["USA"], 0.6)
@@ -202,6 +210,8 @@ class TestSimulation(unittest.TestCase):
             shortage_damage_scale=0.0,
             persistence=0.0,
             delay_share=0.0,
+            substitution_concentration_penalty=0.0,
+            inventory_stress_penalty=0.0,
         )
 
         self.assertEqual(len(history), 1)
@@ -228,12 +238,117 @@ class TestSimulation(unittest.TestCase):
             shortage_damage_scale=0.0,
             persistence=0.0,
             substitution_pressure_exponent=1.0,
+            substitution_concentration_penalty=0.0,
+            inventory_stress_penalty=0.0,
         )
 
         self.assertAlmostEqual(history[0]["shortage_data"]["CAN"], 0.1)
         self.assertAlmostEqual(history[0]["deferred_shortage_data"]["CAN"], 0.1)
         self.assertAlmostEqual(history[1]["pressure_data"]["CAN"], 0.1)
         self.assertAlmostEqual(history[1]["shock_data"]["CAN"], 0.1)
+
+    def test_concentrated_pressure_reduces_substitution_more_than_diversified_pressure(self) -> None:
+        """Pressure from one dominant source should be harder to substitute away."""
+        usa = CountryNode("USA", "United States", 100.0)
+        jpn = CountryNode("JPN", "Japan", 100.0)
+        kor = CountryNode("KOR", "South Korea", 100.0)
+        can = CountryNode("CAN", "Canada", 50.0)
+
+        usa.add_trading_partner(can, 0.2)
+        jpn.add_trading_partner(can, 0.1)
+        kor.add_trading_partner(can, 0.1)
+
+        concentrated_history = run_time_step_simulation(
+            {"USA": usa, "CAN": can},
+            {"USA": 0.4},
+            threshold=0.0,
+            max_steps=1,
+            inventory_buffer=0.0,
+            substitution_rate=0.5,
+            trade_pressure_scale=1.0,
+            inventory_rebuild_rate=0.0,
+            health_damage_scale=0.0,
+            shortage_damage_scale=0.0,
+            persistence=0.0,
+            delay_share=0.0,
+            substitution_pressure_exponent=1.0,
+            substitution_concentration_penalty=0.5,
+            inventory_stress_penalty=0.0,
+        )
+        diversified_history = run_time_step_simulation(
+            {"USA": usa, "JPN": jpn, "KOR": kor, "CAN": can},
+            {"USA": 0.1333333333, "JPN": 0.2666666667, "KOR": 0.2666666667},
+            threshold=0.0,
+            max_steps=1,
+            inventory_buffer=0.0,
+            substitution_rate=0.5,
+            trade_pressure_scale=1.0,
+            inventory_rebuild_rate=0.0,
+            health_damage_scale=0.0,
+            shortage_damage_scale=0.0,
+            persistence=0.0,
+            delay_share=0.0,
+            substitution_pressure_exponent=1.0,
+            substitution_concentration_penalty=0.5,
+            inventory_stress_penalty=0.0,
+        )
+
+        self.assertGreater(
+            concentrated_history[0]["shortage_data"]["CAN"],
+            diversified_history[0]["shortage_data"]["CAN"],
+        )
+
+    def test_large_shocks_limit_usable_inventory(self) -> None:
+        """Very large shocks should make a smaller share of inventory usable in one step."""
+        usa = CountryNode("USA", "United States", 100.0)
+        can = CountryNode("CAN", "Canada", 50.0)
+        usa.add_trading_partner(can, 0.5)
+        countries = {"USA": usa, "CAN": can}
+
+        low_pressure_history = run_time_step_simulation(
+            countries,
+            {"USA": 0.2},
+            threshold=0.0,
+            max_steps=1,
+            inventory_buffer=0.25,
+            substitution_rate=0.0,
+            trade_pressure_scale=1.0,
+            inventory_rebuild_rate=0.0,
+            health_damage_scale=0.0,
+            shortage_damage_scale=0.0,
+            persistence=0.0,
+            delay_share=0.0,
+            inventory_stress_penalty=0.75,
+            inventory_stress_exponent=1.0,
+        )
+        usa_high = CountryNode("USA", "United States", 100.0)
+        can_high = CountryNode("CAN", "Canada", 50.0)
+        usa_high.add_trading_partner(can_high, 0.5)
+        high_pressure_history = run_time_step_simulation(
+            {"USA": usa_high, "CAN": can_high},
+            {"USA": 0.8},
+            threshold=0.0,
+            max_steps=1,
+            inventory_buffer=0.25,
+            substitution_rate=0.0,
+            trade_pressure_scale=1.0,
+            inventory_rebuild_rate=0.0,
+            health_damage_scale=0.0,
+            shortage_damage_scale=0.0,
+            persistence=0.0,
+            delay_share=0.0,
+            inventory_stress_penalty=0.75,
+            inventory_stress_exponent=1.0,
+        )
+
+        self.assertGreater(
+            low_pressure_history[0]["inventory_data"]["CAN"],
+            high_pressure_history[0]["inventory_data"]["CAN"],
+        )
+        self.assertGreater(
+            high_pressure_history[0]["shortage_data"].get("CAN", 0.0),
+            low_pressure_history[0]["shortage_data"].get("CAN", 0.0),
+        )
 
 
 if __name__ == "__main__":
