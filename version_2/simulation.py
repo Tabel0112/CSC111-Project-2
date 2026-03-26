@@ -249,5 +249,7 @@ def run_time_step_simulation(
             threshold,
             persistence,
         )
+        if not current_disruptions and not any(value > 0.0 for value in deferred_shortages.values()):
+            break
 
     return step_history

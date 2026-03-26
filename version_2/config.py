@@ -55,7 +55,7 @@ SHORTAGE_DELAY_SHARE = 0.22
 SHORTAGE_DAMAGE_SCALE = 0.2
 SUBSTITUTION_PRESSURE_EXPONENT = 0.75
 
-SHOW_EDGES = True
+SHOW_EDGES = False
 REPLAY_ENABLED = True
 
 # Common names that usually identify aggregates rather than individual countries.

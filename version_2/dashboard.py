@@ -11,6 +11,7 @@ from config import (
     DEFAULT_INITIAL_COUNTRIES,
     DEFAULT_INITIAL_SHOCK,
     DEFAULT_INITIAL_SHOCKS,
+    DEFAULT_TIME_STEPS,
     DEFAULT_VISIBLE_BY,
 )
 from country_node import CountryNode
@@ -129,10 +130,8 @@ def _run_simulation_from_controls(
     selected_codes: list[str],
     rows: list[dict[str, object]],
     threshold: float,
-    steps: int,
     top_n: int,
     top_k: int,
-    visible_by: str,
     _hide_edges: bool,
 ):
     """Return simulation outputs from UI control values."""
@@ -156,7 +155,7 @@ def _run_simulation_from_controls(
         countries,
         initial_shock_map,
         threshold=threshold,
-        max_steps=steps,
+        max_steps=DEFAULT_TIME_STEPS,
         inventory_buffer=resilience_profiles["inventory_buffers"],
         substitution_rate=resilience_profiles["substitution_rates"],
         delay_share=resilience_profiles["delay_shares"],
@@ -165,7 +164,7 @@ def _run_simulation_from_controls(
         countries,
         step_history,
         min(top_n, len(countries)),
-        visible_by,
+        DEFAULT_VISIBLE_BY,
     )
     status = (
         f"Selected {len(initial_shock_map)} countries. "
@@ -285,29 +284,18 @@ def run_dashboard(args: Namespace) -> None:
                             html.Label("Threshold"),
                             dcc.Input(id="threshold-input", type="number", value=args.threshold, step="any", min=0),
                             html.Div(style={"height": "8px"}),
-                            html.Label("Time steps"),
-                            dcc.Input(id="steps-input", type="number", value=args.steps, step=1),
-                            html.Div(style={"height": "8px"}),
                             html.Label("Visible countries"),
                             dcc.Input(id="top-n-input", type="number", value=args.top_n, step=1),
                             html.Div(style={"height": "8px"}),
                             html.Label("Visible edges per country"),
                             dcc.Input(id="top-k-input", type="number", value=args.top_k, step=1),
                             html.Div(style={"height": "8px"}),
-                            html.Label("Visibility ranking"),
-                            dcc.Dropdown(
-                                id="visible-by-input",
-                                options=[{"label": value.upper(), "value": value} for value in ["gdp", "exports", "imports", "trade"]],
-                                value=args.visible_by or DEFAULT_VISIBLE_BY,
-                                clearable=False,
-                            ),
-                            html.Div(style={"height": "8px"}),
                             dcc.Checklist(
                                 id="hide-edges-input",
                                 options=[{"label": "Hide edges", "value": "hide"}],
                                 value=["hide"] if args.hide_edges else [],
                             ),
-                            html.Button("Run Simulation", id="run-button", n_clicks=0, style={"marginTop": "12px"}),
+                            html.Button("Create Simulation", id="run-button", n_clicks=0, style={"marginTop": "12px"}),
                             html.Div(style={"height": "12px"}),
                             html.Div(
                                 style={"display": "flex", "gap": "8px", "alignItems": "center"},
@@ -355,10 +343,8 @@ def run_dashboard(args: Namespace) -> None:
         State("country-select", "value"),
         State("shock-table", "data"),
         State("threshold-input", "value"),
-        State("steps-input", "value"),
         State("top-n-input", "value"),
         State("top-k-input", "value"),
-        State("visible-by-input", "value"),
         State("hide-edges-input", "value"),
     )
     def _run_from_controls(
@@ -366,10 +352,8 @@ def run_dashboard(args: Namespace) -> None:
         selected_codes: list[str],
         rows: list[dict[str, object]],
         threshold: float,
-        steps: int,
         top_n: int,
         top_k: int,
-        visible_by: str,
         hide_edges: list[str],
     ):
         simulation_data, status = _run_simulation_from_controls(
@@ -377,10 +361,8 @@ def run_dashboard(args: Namespace) -> None:
             selected_codes or [],
             rows or [],
             float(threshold),
-            int(steps),
             int(top_n),
             int(top_k),
-            visible_by,
             "hide" in (hide_edges or []),
         )
         step_count = len(simulation_data["step_history"])

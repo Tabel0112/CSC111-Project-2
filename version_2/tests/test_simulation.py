@@ -84,10 +84,8 @@ class TestSimulation(unittest.TestCase):
             substitution_pressure_exponent=1.0,
         )
 
-        self.assertEqual(len(history), 3)
+        self.assertEqual(len(history), 1)
         self.assertAlmostEqual(history[0]["inventory_data"]["CAN"], 0.05)
-        self.assertEqual(history[1]["shock_data"], {})
-        self.assertEqual(history[2]["shock_data"], {})
 
     def test_health_stays_flat_when_no_new_damage_occurs(self) -> None:
         """Health should stay at the post-shock level once pressure stops."""
@@ -162,8 +160,8 @@ class TestSimulation(unittest.TestCase):
             high_history[-1]["health_data"]["USA"],
         )
 
-    def test_simulation_runs_full_requested_step_count(self) -> None:
-        """The simulation should continue through max_steps even after shocks stop."""
+    def test_simulation_stops_when_disruption_fades(self) -> None:
+        """The simulation should end early once disruption and deferred pressure both stop."""
         countries = {"USA": CountryNode("USA", "United States", 100.0)}
 
         history = run_time_step_simulation(
@@ -181,8 +179,8 @@ class TestSimulation(unittest.TestCase):
             delay_share=0.0,
         )
 
-        self.assertEqual(len(history), 5)
-        self.assertEqual(history[1]["shock_data"], {})
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["shock_data"], {"USA": 0.2})
 
     def test_delay_share_pushes_shortage_into_later_step(self) -> None:
         """A delay share should split shortages across immediate and deferred channels."""

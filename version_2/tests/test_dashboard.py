@@ -50,14 +50,12 @@ class TestDashboardHelpers(unittest.TestCase):
             ["USA"],
             [],
             threshold=0.01,
-            steps=3,
             top_n=2,
             top_k=2,
-            visible_by="gdp",
             _hide_edges=False,
         )
 
-        self.assertEqual(len(simulation_data["step_history"]), 3)
+        self.assertGreaterEqual(len(simulation_data["step_history"]), 1)
         self.assertIn("Selected 1 countries.", status)
 
     def test_choose_visible_country_codes_keeps_pressured_countries(self) -> None:
