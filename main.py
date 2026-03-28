@@ -1,4 +1,17 @@
-"""Main entry point for the Macroeconomic Shock Simulator."""
+"""Macroeconomic Shock Simulator: Main Program
+
+This module parses the command-line arguments for the project and launches the
+browser dashboard.
+
+Copyright and Usage Information
+===============================
+
+This file is provided solely for the personal and private use of students
+taking CSC111 at the University of Toronto. All forms of distribution of this
+code, whether as given or with any changes, are expressly prohibited.
+
+This file is Copyright (c) 2026 Baiyang Chen and collaborators.
+"""
 
 from __future__ import annotations
 
@@ -45,4 +58,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    

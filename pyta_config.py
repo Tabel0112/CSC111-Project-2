@@ -1,4 +1,17 @@
-"""Shared PythonTA configuration for the project modules."""
+"""Macroeconomic Shock Simulator: PythonTA Configuration
+
+This module stores the shared PythonTA configuration used by the project's
+module main blocks.
+
+Copyright and Usage Information
+===============================
+
+This file is provided solely for the personal and private use of students
+taking CSC111 at the University of Toronto. All forms of distribution of this
+code, whether as given or with any changes, are expressly prohibited.
+
+This file is Copyright (c) 2026 Baiyang Chen and collaborators.
+"""
 
 PYTA_CONFIG = {
     "allowed-import-modules": [
@@ -13,6 +26,7 @@ PYTA_CONFIG = {
         "dataclasses",
         "doctest",
         "graph_builder",
+        "logging",
         "pathlib",
         "plotly.graph_objects",
         "python_ta",
@@ -35,3 +49,11 @@ PYTA_CONFIG = {
     ],
     "max-line-length": 120,
 }
+
+
+if __name__ == "__main__":
+    import doctest
+    import python_ta
+
+    doctest.testmod()
+    python_ta.check_all()

@@ -1,4 +1,17 @@
-"""Configuration values for the macroeconomic shock simulator."""
+"""Macroeconomic Shock Simulator: Configuration
+
+This module stores the default file paths, simulation constants, and display
+settings used across the project.
+
+Copyright and Usage Information
+===============================
+
+This file is provided solely for the personal and private use of students
+taking CSC111 at the University of Toronto. All forms of distribution of this
+code, whether as given or with any changes, are expressly prohibited.
+
+This file is Copyright (c) 2026 Baiyang Chen and collaborators.
+"""
 
 from __future__ import annotations
 

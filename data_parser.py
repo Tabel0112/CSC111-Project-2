@@ -1,4 +1,17 @@
-"""CSV parsing utilities for GDP, trade, and coordinate data."""
+"""Macroeconomic Shock Simulator: Data Parsing
+
+This module loads and cleans the GDP, trade, and coordinate CSV files used to
+construct the trade graph and geographic visualization.
+
+Copyright and Usage Information
+===============================
+
+This file is provided solely for the personal and private use of students
+taking CSC111 at the University of Toronto. All forms of distribution of this
+code, whether as given or with any changes, are expressly prohibited.
+
+This file is Copyright (c) 2026 Baiyang Chen and collaborators.
+"""
 
 from __future__ import annotations
 
@@ -45,9 +58,11 @@ def _read_csv_rows(path: str) -> list[list[str]]:
     for encoding in CSV_ENCODINGS:
         try:
             with csv_path.open("r", encoding=encoding, newline="") as file:
-                return list(csv.reader(file))
+                rows = list(csv.reader(file))
         except UnicodeDecodeError as exc:
             last_error = exc
+        else:
+            return rows
 
     raise UnicodeError(f"Could not decode CSV file: {path}") from last_error
 
@@ -323,12 +338,12 @@ def load_country_coordinates(path: str) -> dict[str, tuple[float, float]]:
         return {}
 
     try:
-        header_index, header = _find_header_index(
+        header_index, _ = _find_header_index(
             path,
             {"code", "lat", "lon"},
         )
     except ValueError:
-        header_index, header = _find_header_index(
+        header_index, _ = _find_header_index(
             path,
             {"alpha3code", "latitudeaverage", "longitudeaverage"},
         )

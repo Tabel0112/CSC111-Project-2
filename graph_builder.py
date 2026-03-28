@@ -1,4 +1,17 @@
-"""Helpers for building and filtering the directed trade graph."""
+"""Macroeconomic Shock Simulator: Graph Construction
+
+This module builds the directed weighted trade graph, computes bilateral edge
+weights, and derives country resilience profiles from the trade structure.
+
+Copyright and Usage Information
+===============================
+
+This file is provided solely for the personal and private use of students
+taking CSC111 at the University of Toronto. All forms of distribution of this
+code, whether as given or with any changes, are expressly prohibited.
+
+This file is Copyright (c) 2026 Baiyang Chen and collaborators.
+"""
 
 from __future__ import annotations
 

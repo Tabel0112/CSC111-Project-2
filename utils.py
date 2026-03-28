@@ -1,4 +1,17 @@
-"""Small helper functions used across the project."""
+"""Macroeconomic Shock Simulator: Utility Functions
+
+This module contains small reusable helper functions for numeric cleaning,
+clamping, formatting, and country snapshot generation.
+
+Copyright and Usage Information
+===============================
+
+This file is provided solely for the personal and private use of students
+taking CSC111 at the University of Toronto. All forms of distribution of this
+code, whether as given or with any changes, are expressly prohibited.
+
+This file is Copyright (c) 2026 Baiyang Chen and collaborators.
+"""
 
 from __future__ import annotations
 

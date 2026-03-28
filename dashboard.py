@@ -1,8 +1,22 @@
-"""Dash interface for the time-step simulation."""
+"""Macroeconomic Shock Simulator: Dashboard
+
+This module builds the Dash user interface, connects user input to the
+simulation logic, and renders the interactive visualization in the browser.
+
+Copyright and Usage Information
+===============================
+
+This file is provided solely for the personal and private use of students
+taking CSC111 at the University of Toronto. All forms of distribution of this
+code, whether as given or with any changes, are expressly prohibited.
+
+This file is Copyright (c) 2026 Baiyang Chen and collaborators.
+"""
 
 from __future__ import annotations
 
 from argparse import Namespace
+import logging
 import socket
 import threading
 import webbrowser
@@ -33,6 +47,8 @@ from runtime_options import choose_visible_country_codes, parse_country_names, p
 from simulation import run_time_step_simulation
 from utils import safe_float
 from visualization import create_simulation_figure, create_step_figure
+
+LOGGER = logging.getLogger(__name__)
 
 
 def build_country_dropdown_options(countries: dict[str, CountryNode]) -> list[dict[str, str]]:
@@ -102,11 +118,13 @@ def _load_base_graph(args: Namespace) -> dict[str, CountryNode]:
     trade_data = load_trade_data(args.trade_file)
     overlap = validate_country_matches(gdp_data, trade_data)
 
-    print(
+    LOGGER.info(
         "Loaded real data:",
-        f"{len(gdp_data)} GDP countries,",
-        f"{len(trade_data)} export rows,",
-        f"{len(overlap['shared'])} shared country codes.",
+        extra={
+            "gdp_country_count": len(gdp_data),
+            "trade_row_count": len(trade_data),
+            "shared_country_count": len(overlap["shared"]),
+        },
     )
 
     countries = build_trade_graph(gdp_data, trade_data, coordinates)
@@ -492,9 +510,9 @@ def run_dashboard(args: Namespace) -> None:
     port = _find_available_port(requested_port)
     url = f"http://127.0.0.1:{port}/"
     if port != requested_port:
-        print(f"Port {requested_port} is busy. Using {url} instead.")
+        LOGGER.info("Port %s is busy. Using %s instead.", requested_port, url)
 
-    print(f"Opening {url} in your browser...")
+    LOGGER.info("Opening %s in your browser...", url)
     _open_browser_when_ready(url)
     app.run(debug=False, host="127.0.0.1", port=port)
 
