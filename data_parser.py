@@ -13,7 +13,17 @@ CSV_ENCODINGS = ("utf-8-sig", "cp1252", "latin-1")
 
 
 def clean_country_codes(code: str) -> Optional[str]:
-    """Return a cleaned ISO-3 country code, or None if it is invalid."""
+    """Return a cleaned ISO-3 country code, or None if it is invalid.
+
+    >>> clean_country_codes("can")
+    'CAN'
+    >>> clean_country_codes(" twn ")
+    'TWN'
+    >>> clean_country_codes("W00") is None
+    True
+    >>> clean_country_codes("US") is None
+    True
+    """
     cleaned = code.strip().upper()
     if len(cleaned) == 3 and cleaned.isalpha():
         return cleaned
@@ -359,11 +369,20 @@ def validate_country_matches(
 ) -> dict[str, set[str]]:
     """Return a simple summary of code overlap between GDP and trade data."""
     gdp_codes = set(gdp_data)
-    trade_exporters = {row["exporter_code"] for row in trade_data}
-    trade_importers = {row["importer_code"] for row in trade_data}
+    trade_exporters = {str(row["exporter_code"]) for row in trade_data}
+    trade_importers = {str(row["importer_code"]) for row in trade_data}
 
     return {
         "gdp_only": gdp_codes - trade_exporters - trade_importers,
         "trade_only": (trade_exporters | trade_importers) - gdp_codes,
         "shared": gdp_codes & (trade_exporters | trade_importers),
     }
+
+
+if __name__ == "__main__":
+    import doctest
+    import python_ta
+    from pyta_config import PYTA_CONFIG
+
+    doctest.testmod()
+    python_ta.check_all(config=PYTA_CONFIG)

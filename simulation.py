@@ -67,9 +67,9 @@ def _sanitize_disruptions(
 ) -> dict[str, float]:
     """Return valid disruptions clamped into [0.0, 1.0]."""
     return {
-        code: clamp_shock(impact)
-        for code, impact in disruptions.items()
-        if code in countries and clamp_shock(impact) > 0.0
+        country_code: clamp_shock(impact)
+        for country_code, impact in disruptions.items()
+        if country_code in countries and clamp_shock(impact) > 0.0
     }
 
 
@@ -80,8 +80,11 @@ def _compute_trade_pressures(
     demand_pressure_scale: float,
 ) -> tuple[PressureMap, PressureSources]:
     """Return bilateral pressure totals and per-source contributions."""
-    pressures: PressureMap = {code: 0.0 for code in countries}
-    pressure_sources: PressureSources = {code: {} for code in countries}
+    pressures: PressureMap = {}
+    pressure_sources: PressureSources = {}
+    for country_code in countries:
+        pressures[country_code] = 0.0
+        pressure_sources[country_code] = {}
 
     for exporter in countries.values():
         exporter_disruption = clamp_shock(disruptions.get(exporter.code, 0.0))
@@ -256,7 +259,10 @@ def _compute_next_disruptions(
 
 def _snapshot(values: PressureMap) -> PressureMap:
     """Return a sorted shallow snapshot of scalar values."""
-    return {code: values[code] for code in sorted(values)}
+    return {
+        country_code: values[country_code]
+        for country_code in sorted(values)
+    }
 
 
 def _combine_pressures(
@@ -265,10 +271,16 @@ def _combine_pressures(
 ) -> PressureMap:
     """Return the summed pressure map after clamping each country's total."""
     combined = {
-        code: clamp_shock(first_pressures.get(code, 0.0) + second_pressures.get(code, 0.0))
-        for code in set(first_pressures) | set(second_pressures)
+        country_code: clamp_shock(
+            first_pressures.get(country_code, 0.0) + second_pressures.get(country_code, 0.0)
+        )
+        for country_code in set(first_pressures) | set(second_pressures)
     }
-    return {code: value for code, value in combined.items() if value > 0.0}
+    return {
+        country_code: value
+        for country_code, value in combined.items()
+        if value > 0.0
+    }
 
 
 def _profile_value(profile: float | Mapping[str, float], code: str) -> float:
@@ -287,9 +299,18 @@ def _resolve_profiles(
     """Resolve scalar-or-mapping profiles into per-country dictionaries once."""
     codes = countries.keys()
     return SimulationProfiles(
-        inventory_buffer={code: _profile_value(inventory_buffer, code) for code in codes},
-        substitution_rate={code: _profile_value(substitution_rate, code) for code in codes},
-        delay_share={code: _profile_value(delay_share, code) for code in codes},
+        inventory_buffer={
+            country_code: _profile_value(inventory_buffer, country_code)
+            for country_code in codes
+        },
+        substitution_rate={
+            country_code: _profile_value(substitution_rate, country_code)
+            for country_code in codes
+        },
+        delay_share={
+            country_code: _profile_value(delay_share, country_code)
+            for country_code in codes
+        },
     )
 
 
@@ -307,7 +328,11 @@ def _build_step_snapshot(
         "pressure_data": _snapshot(state.pressures),
         "shortage_data": _snapshot(state.shortages),
         "deferred_shortage_data": _snapshot(
-            {code: value for code, value in state.deferred_shortages.items() if value > 0.0}
+            {
+                country_code: value
+                for country_code, value in state.deferred_shortages.items()
+                if value > 0.0
+            }
         ),
     }
 
@@ -341,7 +366,7 @@ def run_time_step_simulation(
     state = StepState(
         disruptions=initial_disruptions,
         inventories=dict(profiles.inventory_buffer),
-        deferred_shortages={code: 0.0 for code in countries},
+        deferred_shortages={country_code: 0.0 for country_code in countries},
     )
 
     for step in range(max_steps):
@@ -395,3 +420,12 @@ def run_time_step_simulation(
             break
 
     return step_history
+
+
+if __name__ == "__main__":
+    import doctest
+    import python_ta
+    from pyta_config import PYTA_CONFIG
+
+    doctest.testmod()
+    python_ta.check_all(config=PYTA_CONFIG)

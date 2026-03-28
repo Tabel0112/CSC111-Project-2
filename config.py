@@ -7,6 +7,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 
+
 def _pick_default_data_file(expected_name: str, glob_pattern: str) -> Path:
     """Return an existing data file when possible, otherwise the expected path."""
     expected_path = DATA_DIR / expected_name
@@ -34,19 +35,32 @@ DEFAULT_COORDINATE_FILE = _pick_default_data_file(
     "country*coord*.csv",
 )
 
-DEFAULT_THRESHOLD = 0.002
+DEFAULT_THRESHOLD = 0.004
 MIN_HEALTH_CUTOFF = 0.001
 DEFAULT_INITIAL_SHOCK = 0.2
 DEFAULT_INITIAL_COUNTRIES = "United States; China; Germany; Japan; India"
 DEFAULT_INITIAL_SHOCKS = "0.35,0.3,0.25,0.2,0.18"
-DEFAULT_TOP_N_COUNTRIES = 170
-DEFAULT_TOP_K_EDGES = 40
-DEFAULT_MAX_WAVES = 12
-MAX_EDGE_WEIGHT = 0.5
-SHOCK_PERSISTENCE = 0.2
+DEFAULT_TOP_N_COUNTRIES = 180
+DEFAULT_TOP_K_EDGES = 60
+DEFAULT_TIME_STEPS = 18
+MAX_EDGE_WEIGHT = 0.35
 DEFAULT_VISIBLE_BY = "trade"
 
-SHOW_EDGES = True
+DEFAULT_INVENTORY_BUFFER = 0.08
+INVENTORY_REBUILD_RATE = 0.025
+SUBSTITUTION_RATE = 0.45
+TRADE_PRESSURE_SCALE = 0.95
+DEMAND_PRESSURE_SCALE = 0.7
+HEALTH_DAMAGE_SCALE = 0.75
+DISRUPTION_PERSISTENCE = 0.2
+SHORTAGE_DELAY_SHARE = 0.22
+SHORTAGE_DAMAGE_SCALE = 0.2
+SUBSTITUTION_PRESSURE_EXPONENT = 0.75
+SUBSTITUTION_CONCENTRATION_PENALTY = 0.5
+INVENTORY_STRESS_PENALTY = 0.75
+INVENTORY_STRESS_EXPONENT = 1.0
+
+SHOW_EDGES = False
 REPLAY_ENABLED = True
 
 # Common names that usually identify aggregates rather than individual countries.
@@ -57,19 +71,40 @@ AGGREGATE_NAME_KEYWORDS = {
     "asia",
     "caribbean",
     "central europe",
+    "classification",
+    "demographic dividend",
+    "developed countries",
+    "developing",
     "east asia",
     "euro area",
     "europe",
+    "fragile",
     "high income",
+    "heavily indebted",
+    "ibrd",
+    "ida",
     "income",
     "latin america",
+    "least developed",
+    "late-demographic",
     "middle east",
     "north america",
     "oecd",
     "pacific",
+    "post-demographic",
+    "pre-demographic",
     "small states",
     "south asia",
     "sub-saharan",
     "union",
     "world",
 }
+
+
+if __name__ == "__main__":
+    import doctest
+    import python_ta
+    from pyta_config import PYTA_CONFIG
+
+    doctest.testmod()
+    python_ta.check_all(config=PYTA_CONFIG)

@@ -18,7 +18,7 @@ class CountryNode:
     - current_health: Percentage representing current financial status of the country
     - trading_partners: Dictionary representing each neighbor and bilateral edge weights
     """
-    
+
     code: str
     name: str
     total_gdp: float
@@ -92,3 +92,12 @@ class CountryNode:
             f"gdp={self.total_gdp:.2f}, imports={self.total_imports:.2f}, "
             f"exports={self.total_exports:.2f}, health={self.current_health:.3f})"
         )
+
+
+if __name__ == "__main__":
+    import doctest
+    import python_ta
+    from pyta_config import PYTA_CONFIG
+
+    doctest.testmod()
+    python_ta.check_all(config=PYTA_CONFIG)

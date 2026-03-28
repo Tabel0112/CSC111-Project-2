@@ -1,0 +1,37 @@
+"""Shared PythonTA configuration for the project modules."""
+
+PYTA_CONFIG = {
+    "allowed-import-modules": [
+        "__future__",
+        "argparse",
+        "collections.abc",
+        "config",
+        "country_node",
+        "csv",
+        "dash",
+        "data_parser",
+        "dataclasses",
+        "doctest",
+        "graph_builder",
+        "pathlib",
+        "plotly.graph_objects",
+        "python_ta",
+        "pyta_config",
+        "runtime_options",
+        "simulation",
+        "socket",
+        "threading",
+        "typing",
+        "utils",
+        "visualization",
+        "webbrowser",
+    ],
+    "disable": [
+        "too-many-instance-attributes",
+        "too-many-arguments",
+        "too-many-locals",
+        "import-outside-toplevel",
+        "naming-convention-violation",
+    ],
+    "max-line-length": 120,
+}

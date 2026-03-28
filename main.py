@@ -29,7 +29,9 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--top-n", type=int, default=DEFAULT_TOP_N_COUNTRIES)
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K_EDGES)
     parser.add_argument("--port", type=int, default=8050)
-    parser.add_argument("--hide-edges", action="store_true")
+    parser.add_argument("--show-edges", dest="hide_edges", action="store_false")
+    parser.add_argument("--hide-edges", dest="hide_edges", action="store_true")
+    parser.set_defaults(hide_edges=True)
     return parser.parse_args()
 
 

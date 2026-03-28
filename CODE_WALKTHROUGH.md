@@ -1,12 +1,12 @@
-# Version 2 Code Walkthrough
+# Code Walkthrough
 
-This document explains exactly how `version_2` runs, from startup to simulation to visualization.
+This document explains exactly how the current project runs, from startup to simulation to visualization.
 
 It is written against the current code in this folder, not the older `version_1` model.
 
 ## 1. High-Level Idea
 
-`version_2` is a repeated time-step trade-shock simulation.
+The project is a repeated time-step trade-shock simulation.
 
 The model says:
 
@@ -260,7 +260,7 @@ So if the US is disrupted, Canada should feel more pressure than if the edge wer
 
 This happens in `graph_builder.py -> build_country_resilience_profiles(countries)`.
 
-Because the project does not have direct inventory or substitution datasets, `version_2` derives proxies from the trade structure itself.
+Because the project does not have direct inventory or substitution datasets, it derives proxies from the trade structure itself.
 
 For each importer, the code computes:
 
@@ -597,9 +597,9 @@ This is the shortage that remains after substitution and inventory use.
 
 This is the shortage that is carried into the next step rather than hitting immediately.
 
-## 11. What Changed Compared to Earlier Version 2
+## 11. Model Improvements
 
-The current model is more realistic than the earlier `version_2` state because it now has:
+The current model is more realistic than the earlier project state because it now has:
 
 - country-specific import/export totals stored on nodes
 - better resilience proxies from diversification and import dependence
@@ -629,7 +629,7 @@ So the best interpretation is:
 
 If you need to explain the code quickly:
 
-> `version_2` builds a directed trade graph from real GDP and bilateral trade data.  
+> The project builds a directed trade graph from real GDP and bilateral trade data.  
 > Each edge measures how dependent an importer is on a specific exporter.  
 > The simulation runs in time steps. In each step, disrupted exporters create import pressure, countries absorb part of it through substitution and inventory, some shortage is delayed, and remaining shortage becomes new disruption.  
 > The dashboard just replays those saved step snapshots.

@@ -35,7 +35,7 @@ def _build_edge_trace(
         lat=lats,
         lon=lons,
         mode="lines",
-        line={"width": 0.6, "color": "rgba(255, 140, 0, 0.22)"},
+        line={"width": 0.7, "color": "rgba(24, 90, 120, 0.45)"},
         hoverinfo="skip",
         showlegend=False,
     )
@@ -56,17 +56,17 @@ def _build_country_trace(
     inventory_data = step_snapshot["inventory_data"]
     shortage_data = step_snapshot.get("shortage_data", step_snapshot["pressure_data"])
 
-    for code in sorted(visible_codes):
-        country = countries[code]
+    for visible_code in sorted(visible_codes):
+        country = countries[visible_code]
         locations.append(country.code)
-        colors.append(float(health_data.get(code, 1.0)))
+        colors.append(float(health_data.get(visible_code, 1.0)))
         hover_texts.append(
             format_hover_text(
                 country,
-                float(health_data.get(code, 1.0)),
-                float(impact_data.get(code, 0.0)),
-                float(inventory_data.get(code, 1.0)),
-                float(shortage_data.get(code, 0.0)),
+                float(health_data.get(visible_code, 1.0)),
+                float(impact_data.get(visible_code, 0.0)),
+                float(inventory_data.get(visible_code, 1.0)),
+                float(shortage_data.get(visible_code, 0.0)),
             )
         )
 
@@ -112,12 +112,12 @@ def _build_active_marker_trace(
     inventory_data = step_snapshot["inventory_data"]
     shortage_data = step_snapshot.get("shortage_data", step_snapshot["pressure_data"])
 
-    for code in sorted(impact_data):
-        if code not in visible_codes or code not in countries:
+    for impacted_code in sorted(impact_data):
+        if impacted_code not in visible_codes or impacted_code not in countries:
             continue
 
-        country = countries[code]
-        impact = float(impact_data[code])
+        country = countries[impacted_code]
+        impact = float(impact_data[impacted_code])
         latitudes.append(country.lat)
         longitudes.append(country.lon)
         sizes.append(normalize_size(country.total_gdp, max_gdp) * 0.35 + impact * 44.0)
@@ -125,10 +125,10 @@ def _build_active_marker_trace(
         hover_texts.append(
             format_hover_text(
                 country,
-                float(health_data.get(code, 1.0)),
+                float(health_data.get(impacted_code, 1.0)),
                 impact,
-                float(inventory_data.get(code, 1.0)),
-                float(shortage_data.get(code, 0.0)),
+                float(inventory_data.get(impacted_code, 1.0)),
+                float(shortage_data.get(impacted_code, 0.0)),
             )
         )
 
@@ -170,8 +170,10 @@ def create_step_figure(
 
     bounded_index = max(0, min(step_index, len(step_history) - 1))
     step_snapshot = step_history[bounded_index]
-    max_gdp = max(countries[code].total_gdp for code in visible_codes)
-    active_codes = set(step_snapshot["shock_data"]) | set(step_snapshot.get("shortage_data", step_snapshot["pressure_data"]))
+    max_gdp = max(countries[visible_code].total_gdp for visible_code in visible_codes)
+    active_codes = set(step_snapshot["shock_data"]) | set(
+        step_snapshot.get("shortage_data", step_snapshot["pressure_data"])
+    )
 
     figure_data = []
     if show_edges:
@@ -181,7 +183,7 @@ def create_step_figure(
 
     figure = go.Figure(data=figure_data)
     figure.update_layout(
-        title=f"Macroeconomic Shock Simulator v2 - Step {step_snapshot['step']}",
+        title=f"Macroeconomic Shock Simulator - Step {step_snapshot['step']}",
         geo={
             "projection_type": "natural earth",
             "showland": True,
@@ -212,18 +214,22 @@ def create_simulation_figure(
         raise ValueError("Simulation history is empty.")
 
     base_figure = create_step_figure(countries, step_history, visible_codes, 0, show_edges)
-    max_gdp = max(countries[code].total_gdp for code in visible_codes)
+    max_gdp = max(countries[visible_code].total_gdp for visible_code in visible_codes)
     base_data = list(base_figure.data)
 
     frames = []
-    for step_snapshot in step_history:
-        active_codes = set(step_snapshot["shock_data"]) | set(step_snapshot.get("shortage_data", step_snapshot["pressure_data"]))
+    for frame_snapshot in step_history:
+        active_codes = set(frame_snapshot["shock_data"]) | set(
+            frame_snapshot.get("shortage_data", frame_snapshot["pressure_data"])
+        )
         frame_data = []
         if show_edges:
             frame_data.append(_build_edge_trace(countries, visible_codes, active_codes))
-        frame_data.append(_build_country_trace(countries, step_snapshot, visible_codes))
-        frame_data.append(_build_active_marker_trace(countries, step_snapshot, visible_codes, max_gdp))
-        frames.append(go.Frame(data=frame_data, name=_frame_name(step_snapshot)))
+        frame_data.append(_build_country_trace(countries, frame_snapshot, visible_codes))
+        frame_data.append(
+            _build_active_marker_trace(countries, frame_snapshot, visible_codes, max_gdp)
+        )
+        frames.append(go.Frame(data=frame_data, name=_frame_name(frame_snapshot)))
 
     figure = go.Figure(data=base_data, frames=frames)
     figure.update_layout(**base_figure.layout.to_plotly_json())
@@ -252,17 +258,26 @@ def create_simulation_figure(
                     "currentvalue": {"prefix": "Step: "},
                     "steps": [
                         {
-                            "label": str(step_snapshot["step"]),
+                            "label": str(slider_snapshot["step"]),
                             "method": "animate",
                             "args": [
-                                [_frame_name(step_snapshot)],
+                                [_frame_name(slider_snapshot)],
                                 {"frame": {"duration": 0, "redraw": True}},
                             ],
                         }
-                        for step_snapshot in step_history
+                        for slider_snapshot in step_history
                     ],
                 }
             ],
         )
 
     return figure
+
+
+if __name__ == "__main__":
+    import doctest
+    import python_ta
+    from pyta_config import PYTA_CONFIG
+
+    doctest.testmod()
+    python_ta.check_all(config=PYTA_CONFIG)

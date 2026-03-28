@@ -8,13 +8,13 @@ from graph_builder import get_visible_country_codes, get_visible_country_codes_b
 
 def parse_csv_values(raw_value: str) -> list[str]:
     """Return non-empty comma-separated values."""
-    return [item.strip() for item in raw_value.split(",") if item.strip()]
+    return [value.strip() for value in raw_value.split(",") if value.strip()]
 
 
 def parse_country_names(raw_value: str) -> list[str]:
     """Return country names split by semicolons when present, otherwise commas."""
     separator = ";" if ";" in raw_value else ","
-    return [item.strip() for item in raw_value.split(separator) if item.strip()]
+    return [value.strip() for value in raw_value.split(separator) if value.strip()]
 
 
 def choose_visible_country_codes(
@@ -30,15 +30,24 @@ def choose_visible_country_codes(
         else get_visible_country_codes_by_metric(countries, top_n, metric)
     )
     shocked_codes = {
-        code
+        shocked_code
         for wave_snapshot in wave_history
-        for code in wave_snapshot["shock_data"]
-        if code in countries
+        for shocked_code in wave_snapshot["shock_data"]
+        if shocked_code in countries
     }
     pressured_codes = {
-        code
+        pressured_code
         for wave_snapshot in wave_history
-        for code in wave_snapshot.get("pressure_data", {})
-        if code in countries
+        for pressured_code in wave_snapshot.get("pressure_data", {})
+        if pressured_code in countries
     }
     return visible_codes | shocked_codes | pressured_codes
+
+
+if __name__ == "__main__":
+    import doctest
+    import python_ta
+    from pyta_config import PYTA_CONFIG
+
+    doctest.testmod()
+    python_ta.check_all(config=PYTA_CONFIG)
